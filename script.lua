@@ -9,16 +9,18 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
+local TextChatService = game:GetService("TextChatService")
+local HttpService = game:GetService("HttpService")
 
 -- Удаляем старое меню если есть
-if game.CoreGui:FindFirstChild("AdvancedGUI") then
-    game.CoreGui.AdvancedGUI:Destroy()
+if game.CoreGui:FindFirstChild("UltimateGUI") then
+    game.CoreGui.UltimateGUI:Destroy()
 end
 
 -- Настройки
 local isMinimized = false
-local originalSize = UDim2.new(0, 300, 0, 250)
-local minimizedSize = UDim2.new(0, 300, 0, 30)
+local originalSize = UDim2.new(0, 350, 0, 300)
+local minimizedSize = UDim2.new(0, 350, 0, 30)
 local following = false
 local followMode = "Teleport"
 local followTarget = nil
@@ -26,17 +28,22 @@ local speedHackEnabled = false
 local speedValue = 32
 local noclipEnabled = false
 local noclipConnection = nil
+local antiAfkEnabled = false
+local afkInterval = 10 -- minutes
+local afkConnection = nil
+local chatLogEnabled = true
+local filteredWords = {"badword1", "badword2"} -- Добавьте свои запрещенные слова
 
 -- Создаем GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AdvancedGUI"
+ScreenGui.Name = "UltimateGUI"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = originalSize
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
 MainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 MainFrame.BorderSizePixel = 1
 MainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
@@ -58,7 +65,7 @@ Title.Name = "Title"
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Advanced Menu"
+Title.Text = "Ultimate Menu"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.GothamBold
@@ -100,7 +107,7 @@ TabButtons.Parent = MainFrame
 
 local TPButton = Instance.new("TextButton")
 TPButton.Name = "TPButton"
-TPButton.Size = UDim2.new(0.5, 0, 1, 0)
+TPButton.Size = UDim2.new(0.25, 0, 1, 0)
 TPButton.Position = UDim2.new(0, 0, 0, 0)
 TPButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 TPButton.BorderSizePixel = 0
@@ -110,10 +117,34 @@ TPButton.Font = Enum.Font.Gotham
 TPButton.TextSize = 14
 TPButton.Parent = TabButtons
 
+local PlayerButton = Instance.new("TextButton")
+PlayerButton.Name = "PlayerButton"
+PlayerButton.Size = UDim2.new(0.25, 0, 1, 0)
+PlayerButton.Position = UDim2.new(0.25, 0, 0, 0)
+PlayerButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+PlayerButton.BorderSizePixel = 0
+PlayerButton.Text = "Player"
+PlayerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerButton.Font = Enum.Font.Gotham
+PlayerButton.TextSize = 14
+PlayerButton.Parent = TabButtons
+
+local ChatButton = Instance.new("TextButton")
+ChatButton.Name = "ChatButton"
+ChatButton.Size = UDim2.new(0.25, 0, 1, 0)
+ChatButton.Position = UDim2.new(0.5, 0, 0, 0)
+ChatButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+ChatButton.BorderSizePixel = 0
+ChatButton.Text = "Chat"
+ChatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ChatButton.Font = Enum.Font.Gotham
+ChatButton.TextSize = 14
+ChatButton.Parent = TabButtons
+
 local MiscButton = Instance.new("TextButton")
 MiscButton.Name = "MiscButton"
-MiscButton.Size = UDim2.new(0.5, 0, 1, 0)
-MiscButton.Position = UDim2.new(0.5, 0, 0, 0)
+MiscButton.Size = UDim2.new(0.25, 0, 1, 0)
+MiscButton.Position = UDim2.new(0.75, 0, 0, 0)
 MiscButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 MiscButton.BorderSizePixel = 0
 MiscButton.Text = "Misc"
@@ -201,14 +232,14 @@ FollowButton.Font = Enum.Font.Gotham
 FollowButton.TextSize = 14
 FollowButton.Parent = TPTab
 
--- Вкладка Misc
-local MiscTab = Instance.new("Frame")
-MiscTab.Name = "MiscTab"
-MiscTab.Size = UDim2.new(1, 0, 1, 0)
-MiscTab.Position = UDim2.new(0, 0, 0, 0)
-MiscTab.BackgroundTransparency = 1
-MiscTab.Visible = false
-MiscTab.Parent = ContentFrame
+-- Вкладка Player
+local PlayerTab = Instance.new("Frame")
+PlayerTab.Name = "PlayerTab"
+PlayerTab.Size = UDim2.new(1, 0, 1, 0)
+PlayerTab.Position = UDim2.new(0, 0, 0, 0)
+PlayerTab.BackgroundTransparency = 1
+PlayerTab.Visible = false
+PlayerTab.Parent = ContentFrame
 
 -- Спидхак
 local SpeedFrame = Instance.new("Frame")
@@ -217,7 +248,7 @@ SpeedFrame.Size = UDim2.new(0.9, 0, 0, 60)
 SpeedFrame.Position = UDim2.new(0.05, 0, 0, 10)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 SpeedFrame.BorderSizePixel = 0
-SpeedFrame.Parent = MiscTab
+SpeedFrame.Parent = PlayerTab
 
 local SpeedLabel = Instance.new("TextLabel")
 SpeedLabel.Name = "SpeedLabel"
@@ -262,7 +293,7 @@ NoclipFrame.Size = UDim2.new(0.9, 0, 0, 30)
 NoclipFrame.Position = UDim2.new(0.05, 0, 0, 80)
 NoclipFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 NoclipFrame.BorderSizePixel = 0
-NoclipFrame.Parent = MiscTab
+NoclipFrame.Parent = PlayerTab
 
 local NoclipLabel = Instance.new("TextLabel")
 NoclipLabel.Name = "NoclipLabel"
@@ -287,6 +318,129 @@ NoclipToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 NoclipToggle.Font = Enum.Font.Gotham
 NoclipToggle.TextSize = 14
 NoclipToggle.Parent = NoclipFrame
+
+-- Анти-АФК
+local AntiAFKFrame = Instance.new("Frame")
+AntiAFKFrame.Name = "AntiAFKFrame"
+AntiAFKFrame.Size = UDim2.new(0.9, 0, 0, 60)
+AntiAFKFrame.Position = UDim2.new(0.05, 0, 0, 120)
+AntiAFKFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+AntiAFKFrame.BorderSizePixel = 0
+AntiAFKFrame.Parent = PlayerTab
+
+local AntiAFKLabel = Instance.new("TextLabel")
+AntiAFKLabel.Name = "AntiAFKLabel"
+AntiAFKLabel.Size = UDim2.new(0.5, 0, 0, 30)
+AntiAFKLabel.Position = UDim2.new(0, 5, 0, 0)
+AntiAFKLabel.BackgroundTransparency = 1
+AntiAFKLabel.Text = "Anti-AFK (min)"
+AntiAFKLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiAFKLabel.TextXAlignment = Enum.TextXAlignment.Left
+AntiAFKLabel.Font = Enum.Font.Gotham
+AntiAFKLabel.TextSize = 14
+AntiAFKLabel.Parent = AntiAFKFrame
+
+local AntiAFKToggle = Instance.new("TextButton")
+AntiAFKToggle.Name = "AntiAFKToggle"
+AntiAFKToggle.Size = UDim2.new(0.4, 0, 0, 25)
+AntiAFKToggle.Position = UDim2.new(0.55, 0, 0, 3)
+AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+AntiAFKToggle.BorderSizePixel = 0
+AntiAFKToggle.Text = "OFF"
+AntiAFKToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiAFKToggle.Font = Enum.Font.Gotham
+AntiAFKToggle.TextSize = 14
+AntiAFKToggle.Parent = AntiAFKFrame
+
+local AntiAFKBox = Instance.new("TextBox")
+AntiAFKBox.Name = "AntiAFKBox"
+AntiAFKBox.Size = UDim2.new(0.9, 0, 0, 25)
+AntiAFKBox.Position = UDim2.new(0.05, 0, 0, 30)
+AntiAFKBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+AntiAFKBox.BorderSizePixel = 0
+AntiAFKBox.Text = tostring(afkInterval)
+AntiAFKBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiAFKBox.Font = Enum.Font.Gotham
+AntiAFKBox.TextSize = 14
+AntiAFKBox.Parent = AntiAFKFrame
+
+-- Вкладка Chat
+local ChatTab = Instance.new("Frame")
+ChatTab.Name = "ChatTab"
+ChatTab.Size = UDim2.new(1, 0, 1, 0)
+ChatTab.Position = UDim2.new(0, 0, 0, 0)
+ChatTab.BackgroundTransparency = 1
+ChatTab.Visible = false
+ChatTab.Parent = ContentFrame
+
+local ChatLogFrame = Instance.new("ScrollingFrame")
+ChatLogFrame.Name = "ChatLogFrame"
+ChatLogFrame.Size = UDim2.new(0.9, 0, 0, 200)
+ChatLogFrame.Position = UDim2.new(0.05, 0, 0, 10)
+ChatLogFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ChatLogFrame.BorderSizePixel = 0
+ChatLogFrame.ScrollBarThickness = 5
+ChatLogFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ChatLogFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ChatLogFrame.Parent = ChatTab
+
+local ChatLogLayout = Instance.new("UIListLayout")
+ChatLogLayout.Padding = UDim.new(0, 5)
+ChatLogLayout.Parent = ChatLogFrame
+
+local ChatLogLabel = Instance.new("TextLabel")
+ChatLogLabel.Name = "ChatLogLabel"
+ChatLogLabel.Size = UDim2.new(0.9, 0, 0, 20)
+ChatLogLabel.Position = UDim2.new(0.05, 0, 0, 220)
+ChatLogLabel.BackgroundTransparency = 1
+ChatLogLabel.Text = "Chat Log (last 50 messages)"
+ChatLogLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ChatLogLabel.TextXAlignment = Enum.TextXAlignment.Left
+ChatLogLabel.Font = Enum.Font.Gotham
+ChatLogLabel.TextSize = 12
+ChatLogLabel.Parent = ChatTab
+
+-- Вкладка Misc
+local MiscTab = Instance.new("Frame")
+MiscTab.Name = "MiscTab"
+MiscTab.Size = UDim2.new(1, 0, 1, 0)
+MiscTab.Position = UDim2.new(0, 0, 0, 0)
+MiscTab.BackgroundTransparency = 1
+MiscTab.Visible = false
+MiscTab.Parent = ContentFrame
+
+-- Координаты
+local CoordsFrame = Instance.new("Frame")
+CoordsFrame.Name = "CoordsFrame"
+CoordsFrame.Size = UDim2.new(0.9, 0, 0, 80)
+CoordsFrame.Position = UDim2.new(0.05, 0, 0, 10)
+CoordsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+CoordsFrame.BorderSizePixel = 0
+CoordsFrame.Parent = MiscTab
+
+local CoordsLabel = Instance.new("TextLabel")
+CoordsLabel.Name = "CoordsLabel"
+CoordsLabel.Size = UDim2.new(1, -10, 0, 30)
+CoordsLabel.Position = UDim2.new(0, 5, 0, 0)
+CoordsLabel.BackgroundTransparency = 1
+CoordsLabel.Text = "Player Coordinates"
+CoordsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CoordsLabel.TextXAlignment = Enum.TextXAlignment.Left
+CoordsLabel.Font = Enum.Font.Gotham
+CoordsLabel.TextSize = 14
+CoordsLabel.Parent = CoordsFrame
+
+local CoordsDisplay = Instance.new("TextLabel")
+CoordsDisplay.Name = "CoordsDisplay"
+CoordsDisplay.Size = UDim2.new(1, -10, 0, 40)
+CoordsDisplay.Position = UDim2.new(0, 5, 0, 35)
+CoordsDisplay.BackgroundTransparency = 1
+CoordsDisplay.Text = "X: 0, Y: 0, Z: 0"
+CoordsDisplay.TextColor3 = Color3.fromRGB(200, 200, 255)
+CoordsDisplay.TextXAlignment = Enum.TextXAlignment.Left
+CoordsDisplay.Font = Enum.Font.Gotham
+CoordsDisplay.TextSize = 12
+CoordsDisplay.Parent = CoordsFrame
 
 -- Функции
 local function UpdatePlayerList()
@@ -346,7 +500,6 @@ local function StartFollowing()
     FollowButton.Text = "Following "..followTarget.Name
     
     if followMode == "Teleport" then
-        -- Режим плотного слежения телепортом
         local connection
         connection = RunService.Heartbeat:Connect(function()
             if not following or not followTarget or not followTarget.Character then
@@ -356,13 +509,11 @@ local function StartFollowing()
             
             local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                -- Телепортируемся прямо за спину игрока
                 local offset = CFrame.new(0, 0, 1.5)
                 LocalPlayer.Character:SetPrimaryPartCFrame(targetHRP.CFrame * offset)
             end
         end)
     else
-        -- Режим камеры
         Camera.CameraType = Enum.CameraType.Scriptable
         local connection
         connection = RunService.RenderStepped:Connect(function()
@@ -461,18 +612,132 @@ local function ToggleNoclip()
     end
 end
 
-local function SwitchTab(tab)
-    if tab == "TP" then
-        TPTab.Visible = true
-        MiscTab.Visible = false
-        TPButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-        MiscButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+local function ToggleAntiAFK()
+    antiAfkEnabled = not antiAfkEnabled
+    
+    if antiAfkEnabled then
+        AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        AntiAFKToggle.Text = "ON"
+        
+        if afkConnection then
+            afkConnection:Disconnect()
+        end
+        
+        local function AntiAFKAction()
+            if LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    task.wait(0.5)
+                    humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                end
+            end
+        end
+        
+        -- Первое срабатывание сразу
+        AntiAFKAction()
+        
+        -- Затем по таймеру
+        afkConnection = RunService.Heartbeat:Connect(function()
+            if not antiAfkEnabled then return end
+            task.wait(afkInterval * 60)
+            AntiAFKAction()
+        end)
     else
-        TPTab.Visible = false
-        MiscTab.Visible = true
-        TPButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        MiscButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+        AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        AntiAFKToggle.Text = "OFF"
+        
+        if afkConnection then
+            afkConnection:Disconnect()
+            afkConnection = nil
+        end
     end
+end
+
+local function AddChatMessage(message)
+    if not ChatLogFrame then return end
+    
+    -- Очистка старых сообщений (максимум 50)
+    while #ChatLogFrame:GetChildren() > 50 do
+        ChatLogFrame:GetChildren()[2]:Destroy()
+    end
+    
+    local MessageLabel = Instance.new("TextLabel")
+    MessageLabel.Name = "Message_"..tick()
+    MessageLabel.Size = UDim2.new(1, -10, 0, 20)
+    MessageLabel.Position = UDim2.new(0, 5, 0, 0)
+    MessageLabel.BackgroundTransparency = 1
+    MessageLabel.Text = message
+    MessageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    MessageLabel.Font = Enum.Font.Gotham
+    MessageLabel.TextSize = 12
+    MessageLabel.TextWrapped = true
+    MessageLabel.Parent = ChatLogFrame
+    
+    -- Автоскролл вниз
+    ChatLogFrame.CanvasPosition = Vector2.new(0, ChatLogFrame.AbsoluteCanvasSize.Y)
+end
+
+local function FilterMessage(message)
+    -- Проверка на запрещенные слова
+    local lowerMessage = string.lower(message)
+    for _, word in ipairs(filteredWords) do
+        if string.find(lowerMessage, string.lower(word)) then
+            return true
+        end
+    end
+    return false
+end
+
+local function SetupChatLogger()
+    -- Логирование новых сообщений
+    if TextChatService.OnIncomingMessage then
+        TextChatService.OnIncomingMessage:Connect(function(message)
+            if not chatLogEnabled then return end
+            
+            local text = message.Text
+            local sender = message.TextSource
+            local isFiltered = FilterMessage(text)
+            
+            if not isFiltered then
+                AddChatMessage("["..sender.Name.."]: "..text)
+            end
+        end)
+    else
+        warn("Chat logging not supported in this game")
+    end
+end
+
+local function UpdateCoordinates()
+    if not CoordsDisplay then return end
+    
+    local function Update()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local pos = LocalPlayer.Character.HumanoidRootPart.Position
+            CoordsDisplay.Text = string.format("X: %.1f, Y: %.1f, Z: %.1f", pos.X, pos.Y, pos.Z)
+        else
+            CoordsDisplay.Text = "X: 0, Y: 0, Z: 0"
+        end
+    end
+    
+    -- Первое обновление
+    Update()
+    
+    -- Постоянное обновление
+    RunService.Heartbeat:Connect(Update)
+end
+
+local function SwitchTab(tab)
+    TPTab.Visible = (tab == "TP")
+    PlayerTab.Visible = (tab == "Player")
+    ChatTab.Visible = (tab == "Chat")
+    MiscTab.Visible = (tab == "Misc")
+    
+    TPButton.BackgroundColor3 = (tab == "TP") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
+    PlayerButton.BackgroundColor3 = (tab == "Player") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
+    ChatButton.BackgroundColor3 = (tab == "Chat") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
+    MiscButton.BackgroundColor3 = (tab == "Misc") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
 end
 
 -- Подключение событий
@@ -494,11 +759,17 @@ CloseButton.MouseButton1Click:Connect(function()
     if noclipConnection then
         noclipConnection:Disconnect()
     end
+    if afkConnection then
+        afkConnection:Disconnect()
+    end
 end)
 TPButton.MouseButton1Click:Connect(function() SwitchTab("TP") end)
+PlayerButton.MouseButton1Click:Connect(function() SwitchTab("Player") end)
+ChatButton.MouseButton1Click:Connect(function() SwitchTab("Chat") end)
 MiscButton.MouseButton1Click:Connect(function() SwitchTab("Misc") end)
 SpeedToggle.MouseButton1Click:Connect(ToggleSpeedHack)
 NoclipToggle.MouseButton1Click:Connect(ToggleNoclip)
+AntiAFKToggle.MouseButton1Click:Connect(ToggleAntiAFK)
 
 SpeedBox.FocusLost:Connect(function()
     local newSpeed = tonumber(SpeedBox.Text)
@@ -515,7 +786,21 @@ SpeedBox.FocusLost:Connect(function()
     end
 end)
 
+AntiAFKBox.FocusLost:Connect(function()
+    local newInterval = tonumber(AntiAFKBox.Text)
+    if newInterval and newInterval > 0 then
+        afkInterval = newInterval
+    else
+        AntiAFKBox.Text = tostring(afkInterval)
+    end
+end)
+
 -- Инициализация
 UpdatePlayerList()
 SetFollowMode("Teleport")
 SwitchTab("TP")
+SetupChatLogger()
+UpdateCoordinates()
+
+-- Добавляем тестовое сообщение в чат
+AddChatMessage("Chat logger initialized!")
