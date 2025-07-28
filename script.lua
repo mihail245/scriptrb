@@ -1,5 +1,5 @@
 if not game:IsLoaded() then game.Loaded:Wait() end
--- пипка
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -8,8 +8,8 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 -- Удаляем старый GUI если есть
-if CoreGui:FindFirstChild("MobileFollowMini") then
-    CoreGui.MobileFollowMini:Destroy()
+if CoreGui:FindFirstChild("UltraMobileMenu") then
+    CoreGui.UltraMobileMenu:Destroy()
 end
 
 -- Настройки
@@ -18,50 +18,83 @@ local settings = {
     speedHack = false,
     noClip = false,
     following = false,
-    followTarget = nil
+    followTarget = nil,
+    cameraDistance = 5,
+    cameraAngle = 0
 }
 
 -- Создаем мобильный GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MobileFollowMini"
+ScreenGui.Name = "UltraMobileMenu"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Основной фрейм
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0.8, 0, 0, 40)
+MainFrame.Size = UDim2.new(0.75, 0, 0, 40)
 MainFrame.Position = UDim2.new(0.5, 0, 0.1, 0)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Заголовок с кнопкой развернуть/свернуть
-local Title = Instance.new("TextButton")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-Title.BorderSizePixel = 0
-Title.Text = "Mobile Follow Mini ▼"
+-- Заголовок
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Position = UDim2.new(0.15, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "MOBILE HACK MENU"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
+Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 16
-Title.Parent = MainFrame
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+-- Кнопка закрытия
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0.15, 0, 1, 0)
+CloseButton.Position = UDim2.new(0.85, 0, 0, 0)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 18
+CloseButton.Parent = TitleBar
+
+-- Кнопка развернуть/свернуть
+local ExpandButton = Instance.new("TextButton")
+ExpandButton.Size = UDim2.new(0.15, 0, 1, 0)
+ExpandButton.Position = UDim2.new(0, 0, 0, 0)
+ExpandButton.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+ExpandButton.BorderSizePixel = 0
+ExpandButton.Text = "≡"
+ExpandButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExpandButton.Font = Enum.Font.GothamBold
+ExpandButton.TextSize = 20
+ExpandButton.Parent = TitleBar
 
 -- Контент меню
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, 0, 0, 0)
-ContentFrame.Position = UDim2.new(0, 0, 1, 5)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+ContentFrame.Position = UDim2.new(0, 0, 1, 0)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 ContentFrame.BorderSizePixel = 0
 ContentFrame.ClipsDescendants = true
 ContentFrame.Parent = MainFrame
 
 -- Функции для создания элементов
-local function createButton(text, callback, parent)
+local function createButton(text, parent, height)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 35)
+    button.Size = UDim2.new(1, -10, 0, height or 40)
     button.Position = UDim2.new(0, 5, 0, 0)
-    button.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     button.BorderSizePixel = 0
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -69,52 +102,71 @@ local function createButton(text, callback, parent)
     button.TextSize = 14
     button.Parent = parent
     
-    button.MouseButton1Click:Connect(callback)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
     
     return button
 end
 
-local function createSlider(parent, min, max, value, callback)
+local function createSlider(parent, min, max, value)
     local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(0.5, -10, 0, 35)
-    sliderFrame.Position = UDim2.new(0.5, 5, 0, 0)
-    sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Size = UDim2.new(1, -10, 0, 30)
+    sliderFrame.BackgroundTransparency = 1
     sliderFrame.Parent = parent
+    
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(1, 0, 0, 10)
+    slider.Position = UDim2.new(0, 0, 0.5, 0)
+    slider.AnchorPoint = Vector2.new(0, 0.5)
+    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    slider.BorderSizePixel = 0
+    slider.Parent = sliderFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = slider
     
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
     fill.BorderSizePixel = 0
-    fill.Parent = sliderFrame
+    fill.Parent = slider
+    
+    local corner2 = Instance.new("UICorner")
+    corner2.CornerRadius = UDim.new(0, 5)
+    corner2.Parent = fill
     
     local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(1, 0, 1, 0)
+    valueLabel.Size = UDim2.new(0, 50, 0, 20)
+    valueLabel.Position = UDim2.new(1, 5, 0.5, 0)
+    valueLabel.AnchorPoint = Vector2.new(0, 0.5)
     valueLabel.BackgroundTransparency = 1
     valueLabel.Text = tostring(value)
     valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     valueLabel.Font = Enum.Font.GothamBold
     valueLabel.TextSize = 12
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
     valueLabel.Parent = sliderFrame
     
     local dragging = false
     
     local function updateValue(x)
-        local percent = math.clamp((x - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
+        local percent = math.clamp((x - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
         local newValue = math.floor(min + (max - min) * percent)
         fill.Size = UDim2.new(percent, 0, 1, 0)
         valueLabel.Text = tostring(newValue)
-        callback(newValue)
+        return newValue
     end
     
-    sliderFrame.InputBegan:Connect(function(input)
+    slider.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
-            updateValue(input.Position.X + sliderFrame.AbsolutePosition.X)
+            settings.speed = updateValue(input.Position.X + slider.AbsolutePosition.X)
         end
     end)
     
-    sliderFrame.InputEnded:Connect(function(input)
+    slider.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
@@ -122,7 +174,7 @@ local function createSlider(parent, min, max, value, callback)
     
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.Touch then
-            updateValue(input.Position.X + sliderFrame.AbsolutePosition.X)
+            settings.speed = updateValue(input.Position.X + slider.AbsolutePosition.X)
         end
     end)
     
@@ -130,23 +182,54 @@ local function createSlider(parent, min, max, value, callback)
 end
 
 -- Создаем элементы меню
-local speedHackButton = createButton("Speed Hack: OFF", function()
-    settings.speedHack = not settings.speedHack
-    speedHackButton.Text = "Speed Hack: "..(settings.speedHack and "ON" or "OFF")
-end, ContentFrame)
+local function addSection(title, parent)
+    local section = Instance.new("Frame")
+    section.Size = UDim2.new(1, -10, 0, 40)
+    section.BackgroundTransparency = 1
+    section.Parent = parent
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = " "..string.upper(title)
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = section
+    
+    return section
+end
 
-local speedSlider = createSlider(speedHackButton, 1, 300, settings.speed, function(value)
-    settings.speed = value
+-- Секция Speed Hack
+local speedSection = addSection("speed hack", ContentFrame)
+local speedButton = createButton("SPEED HACK: OFF", speedSection, 35)
+speedButton.Size = UDim2.new(0.45, -5, 1, 0)
+
+local speedSlider = createSlider(speedSection, 1, 300, settings.speed)
+speedSlider.Position = UDim2.new(0.55, 5, 0, 0)
+
+speedButton.MouseButton1Click:Connect(function()
+    settings.speedHack = not settings.speedHack
+    speedButton.Text = "SPEED HACK: "..(settings.speedHack and "ON" or "OFF")
+    speedButton.BackgroundColor3 = settings.speedHack and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(50, 50, 60)
 end)
 
-local noClipButton = createButton("NoClip: OFF", function()
+-- Секция NoClip
+local noClipSection = addSection("no clip", ContentFrame)
+local noClipButton = createButton("NO CLIP: OFF", noClipSection, 35)
+noClipButton.MouseButton1Click:Connect(function()
     settings.noClip = not settings.noClip
-    noClipButton.Text = "NoClip: "..(settings.noClip and "ON" or "OFF")
-end, ContentFrame)
+    noClipButton.Text = "NO CLIP: "..(settings.noClip and "ON" or "OFF")
+    noClipButton.BackgroundColor3 = settings.noClip and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(50, 50, 60)
+end)
 
-local followButton = createButton("Follow Player: OFF", function()
+-- Секция Follow
+local followSection = addSection("player follow", ContentFrame)
+local followButton = createButton("FOLLOW PLAYER: OFF", followSection, 35)
+followButton.MouseButton1Click:Connect(function()
     if not settings.followTarget then
-        -- Простой выбор первого игрока (можно улучшить)
+        -- Автовыбор первого игрока
         for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 settings.followTarget = player
@@ -156,23 +239,27 @@ local followButton = createButton("Follow Player: OFF", function()
     end
     
     settings.following = not settings.following
-    followButton.Text = "Follow Player: "..(settings.following and "ON" or "OFF")
+    followButton.Text = "FOLLOW PLAYER: "..(settings.following and "ON" or "OFF")
+    followButton.BackgroundColor3 = settings.following and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(50, 50, 60)
     
     if not settings.following then
         Camera.CameraType = Enum.CameraType.Custom
     end
-end, ContentFrame)
+end)
 
-local teleportButton = createButton("Teleport to Player", function()
+-- Секция телепортации
+local teleportSection = addSection("teleport", ContentFrame)
+local teleportButton = createButton("TELEPORT TO PLAYER", teleportSection, 35)
+teleportButton.MouseButton1Click:Connect(function()
     if settings.followTarget and settings.followTarget.Character then
         local hrp = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
         if hrp and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.Character:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(0, 0, 2))
         end
     end
-end, ContentFrame)
+end)
 
--- Обработка слежения и функций
+-- Обработка функций
 RunService.Heartbeat:Connect(function()
     -- Speed hack
     if settings.speedHack and LocalPlayer.Character then
@@ -196,26 +283,60 @@ RunService.Heartbeat:Connect(function()
         local targetHRP = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
         if targetHRP and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             Camera.CameraType = Enum.CameraType.Scriptable
-            Camera.CFrame = targetHRP.CFrame * CFrame.new(0, 3, -5)
+            Camera.CFrame = targetHRP.CFrame * CFrame.new(0, 3, -settings.cameraDistance) * CFrame.Angles(0, settings.cameraAngle, 0)
             LocalPlayer.Character:SetPrimaryPartCFrame(targetHRP.CFrame * CFrame.new(0, 0, 2))
         end
     end
 end)
 
--- Развернуть/свернуть меню
-local expanded = false
-Title.MouseButton1Click:Connect(function()
-    expanded = not expanded
-    if expanded then
-        ContentFrame.Visible = true
-        ContentFrame.Size = UDim2.new(1, 0, 0, 180)
-        Title.Text = "Mobile Follow Mini ▲"
-    else
-        ContentFrame.Visible = false
-        ContentFrame.Size = UDim2.new(1, 0, 0, 0)
-        Title.Text = "Mobile Follow Mini ▼"
+-- Вращение камеры
+local cameraRotating = false
+local lastTouchPos = nil
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and settings.following then
+        cameraRotating = true
+        lastTouchPos = input.Position
     end
 end)
 
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        cameraRotating = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if cameraRotating and input.UserInputType == Enum.UserInputType.Touch and lastTouchPos then
+        local delta = input.Position - lastTouchPos
+        settings.cameraAngle = settings.cameraAngle + delta.X * 0.01
+        settings.cameraDistance = math.clamp(settings.cameraDistance - delta.Y * 0.1, 2, 15)
+        lastTouchPos = input.Position
+    end
+end)
+
+-- Управление меню
+local expanded = false
+local function toggleMenu()
+    expanded = not expanded
+    if expanded then
+        ContentFrame.Visible = true
+        ContentFrame.Size = UDim2.new(1, 0, 0, 210)
+        ExpandButton.Text = "▼"
+        MainFrame.Size = UDim2.new(0.75, 0, 0, 250)
+    else
+        ContentFrame.Visible = false
+        ContentFrame.Size = UDim2.new(1, 0, 0, 0)
+        ExpandButton.Text = "≡"
+        MainFrame.Size = UDim2.new(0.75, 0, 0, 40)
+    end
+end
+
+ExpandButton.MouseButton1Click:Connect(toggleMenu)
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+    Camera.CameraType = Enum.CameraType.Custom
+end)
+
 -- Инициализация
-ContentFrame.Visible = false
+toggleMenu() -- Сворачиваем меню при старте
