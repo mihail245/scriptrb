@@ -1,205 +1,317 @@
 if not game:IsLoaded() then game.Loaded:Wait() end
 
+-- Сервисы
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 -- Удаляем старое меню если есть
-if game.CoreGui:FindFirstChild("EnhancedFollowGUI") then
-    game.CoreGui.EnhancedFollowGUI:Destroy()
+if game.CoreGui:FindFirstChild("UltimateMobileHack") then
+    game.CoreGui.UltimateMobileHack:Destroy()
 end
 
 -- Настройки
-local isMinimized = false
-local originalSize = UDim2.new(0, 300, 0, 250) -- Увеличили высоту для новых функций
-local minimizedSize = UDim2.new(0, 300, 0, 30)
-local following = false
-local followMode = "Teleport"
-local followTarget = nil
-local speedHackEnabled = false
-local noClipEnabled = false
-local currentSpeed = 16
-local cameraAngle = 0
-local cameraDistance = 5
+local settings = {
+    speed = 16,
+    speedHack = false,
+    noClip = false,
+    noClipTransparency = 0.5,
+    following = false,
+    followTarget = nil,
+    cameraDistance = 5,
+    cameraAngleX = 0,
+    cameraAngleY = 20,
+    activeTab = "Main"
+}
+
+-- Переменные
+local noClipParts = {}
+local cameraConnection = nil
+local followConnection = nil
+local speedConnection = nil
+local noClipConnection = nil
 
 -- Создаем GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "EnhancedFollowGUI"
+ScreenGui.Name = "UltimateMobileHack"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+-- Основное окно
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = originalSize
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-MainFrame.BorderSizePixel = 1
-MainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
+MainFrame.Size = UDim2.new(0, 320, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Title Bar
+-- Заголовок
 local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 30)
-TitleBar.Position = UDim2.new(0, 0, 0, 0)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(0, 200, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Position = UDim2.new(0.15, 0, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Enhanced Follower"
+Title.Text = "ULTIMATE MOBILE HACK"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Font = Enum.Font.GothamBold
+Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
--- Кнопки управления окном
-local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Name = "MinimizeButton"
-MinimizeButton.Size = UDim2.new(0, 30, 1, 0)
-MinimizeButton.Position = UDim2.new(1, -60, 0, 0)
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-MinimizeButton.BorderSizePixel = 0
-MinimizeButton.Text = "_"
-MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.TextSize = 14
-MinimizeButton.Parent = TitleBar
-
+-- Кнопка закрытия
 local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 30, 1, 0)
-CloseButton.Position = UDim2.new(1, -30, 0, 0)
+CloseButton.Size = UDim2.new(0.15, 0, 1, 0)
+CloseButton.Position = UDim2.new(0.85, 0, 0, 0)
 CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseButton.BorderSizePixel = 0
 CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 14
+CloseButton.TextSize = 16
 CloseButton.Parent = TitleBar
 
--- Основное содержимое
+-- Вкладки
+local TabsFrame = Instance.new("Frame")
+TabsFrame.Size = UDim2.new(1, 0, 0, 30)
+TabsFrame.Position = UDim2.new(0, 0, 0, 30)
+TabsFrame.BackgroundTransparency = 1
+TabsFrame.Parent = MainFrame
+
+local MainTabButton = Instance.new("TextButton")
+MainTabButton.Size = UDim2.new(0.33, -2, 1, 0)
+MainTabButton.Position = UDim2.new(0, 0, 0, 0)
+MainTabButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+MainTabButton.BorderSizePixel = 0
+MainTabButton.Text = "Main"
+MainTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainTabButton.Font = Enum.Font.Gotham
+MainTabButton.TextSize = 14
+MainTabButton.Parent = TabsFrame
+
+local MovementTabButton = Instance.new("TextButton")
+MovementTabButton.Size = UDim2.new(0.33, -2, 1, 0)
+MovementTabButton.Position = UDim2.new(0.33, 0, 0, 0)
+MovementTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+MovementTabButton.BorderSizePixel = 0
+MovementTabButton.Text = "Movement"
+MovementTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MovementTabButton.Font = Enum.Font.Gotham
+MovementTabButton.TextSize = 14
+MovementTabButton.Parent = TabsFrame
+
+local VisualTabButton = Instance.new("TextButton")
+VisualTabButton.Size = UDim2.new(0.33, -2, 1, 0)
+VisualTabButton.Position = UDim2.new(0.66, 0, 0, 0)
+VisualTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+VisualTabButton.BorderSizePixel = 0
+VisualTabButton.Text = "Visual"
+VisualTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+VisualTabButton.Font = Enum.Font.Gotham
+VisualTabButton.TextSize = 14
+VisualTabButton.Parent = TabsFrame
+
+-- Контент вкладок
 local ContentFrame = Instance.new("Frame")
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, 0, 1, -30)
-ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.Size = UDim2.new(1, 0, 1, -60)
+ContentFrame.Position = UDim2.new(0, 0, 0, 60)
 ContentFrame.BackgroundTransparency = 1
-ContentFrame.Visible = true
+ContentFrame.ClipsDescendants = true
 ContentFrame.Parent = MainFrame
 
--- Список игроков
+-- Вкладка Main
+local MainTab = Instance.new("ScrollingFrame")
+MainTab.Name = "MainTab"
+MainTab.Size = UDim2.new(1, 0, 1, 0)
+MainTab.BackgroundTransparency = 1
+MainTab.ScrollBarThickness = 5
+MainTab.CanvasSize = UDim2.new(0, 0, 0, 300)
+MainTab.Visible = true
+MainTab.Parent = ContentFrame
+
+-- Вкладка Movement
+local MovementTab = Instance.new("ScrollingFrame")
+MovementTab.Name = "MovementTab"
+MovementTab.Size = UDim2.new(1, 0, 1, 0)
+MovementTab.BackgroundTransparency = 1
+MovementTab.ScrollBarThickness = 5
+MovementTab.CanvasSize = UDim2.new(0, 0, 0, 200)
+MovementTab.Visible = false
+MovementTab.Parent = ContentFrame
+
+-- Вкладка Visual
+local VisualTab = Instance.new("ScrollingFrame")
+VisualTab.Name = "VisualTab"
+VisualTab.Size = UDim2.new(1, 0, 1, 0)
+VisualTab.BackgroundTransparency = 1
+VisualTab.ScrollBarThickness = 5
+VisualTab.CanvasSize = UDim2.new(0, 0, 0, 150)
+VisualTab.Visible = false
+VisualTab.Parent = ContentFrame
+
+-- Функции для создания элементов UI
+local function createButton(parent, text, sizeY)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0.9, 0, 0, sizeY or 35)
+    button.Position = UDim2.new(0.05, 0, 0, 0)
+    button.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+    
+    return button
+end
+
+local function createSlider(parent, text, min, max, value, callback)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(0.9, 0, 0, 50)
+    sliderFrame.Position = UDim2.new(0.05, 0, 0, 0)
+    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Parent = parent
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Text = text..": "..value
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = sliderFrame
+    
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(1, 0, 0, 10)
+    slider.Position = UDim2.new(0, 0, 0, 25)
+    slider.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    slider.BorderSizePixel = 0
+    slider.Parent = sliderFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = slider
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    fill.BorderSizePixel = 0
+    fill.Parent = slider
+    
+    local corner2 = Instance.new("UICorner")
+    corner2.CornerRadius = UDim.new(0, 5)
+    corner2.Parent = fill
+    
+    local dragging = false
+    
+    local function updateValue(x)
+        local percent = math.clamp((x - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+        local newValue = math.floor(min + (max - min) * percent)
+        fill.Size = UDim2.new(percent, 0, 1, 0)
+        label.Text = text..": "..newValue
+        callback(newValue)
+    end
+    
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateValue(input.Position.X + slider.AbsolutePosition.X)
+        end
+    end)
+    
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.Touch then
+            updateValue(input.Position.X + slider.AbsolutePosition.X)
+        end
+    end)
+    
+    return sliderFrame
+end
+
+-- Элементы вкладки Main
 local PlayerList = Instance.new("ScrollingFrame")
-PlayerList.Name = "PlayerList"
-PlayerList.Size = UDim2.new(0.9, 0, 0, 100) -- Уменьшили высоту для новых функций
+PlayerList.Size = UDim2.new(0.9, 0, 0, 120)
 PlayerList.Position = UDim2.new(0.05, 0, 0, 10)
-PlayerList.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+PlayerList.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 PlayerList.BorderSizePixel = 0
 PlayerList.ScrollBarThickness = 5
 PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
-PlayerList.Parent = ContentFrame
+PlayerList.Parent = MainTab
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Padding = UDim.new(0, 5)
 UIListLayout.Parent = PlayerList
 
--- Режимы слежения
-local ModeFrame = Instance.new("Frame")
-ModeFrame.Name = "ModeFrame"
-ModeFrame.Size = UDim2.new(0.9, 0, 0, 30)
-ModeFrame.Position = UDim2.new(0.05, 0, 0, 120)
-ModeFrame.BackgroundTransparency = 1
-ModeFrame.Parent = ContentFrame
+local FollowButton = createButton(MainTab, "Follow Player: OFF", 35)
+FollowButton.Position = UDim2.new(0.05, 0, 0, 140)
 
-local TeleportMode = Instance.new("TextButton")
-TeleportMode.Name = "TeleportMode"
+local TeleportButton = createButton(MainTab, "Teleport to Player", 35)
+TeleportButton.Position = UDim2.new(0.05, 0, 0, 185)
+
+local ModeFrame = Instance.new("Frame")
+ModeFrame.Size = UDim2.new(0.9, 0, 0, 35)
+ModeFrame.Position = UDim2.new(0.05, 0, 0, 230)
+ModeFrame.BackgroundTransparency = 1
+ModeFrame.Parent = MainTab
+
+local TeleportMode = createButton(ModeFrame, "Teleport", 35)
 TeleportMode.Size = UDim2.new(0.45, 0, 1, 0)
 TeleportMode.Position = UDim2.new(0, 0, 0, 0)
 TeleportMode.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-TeleportMode.BorderSizePixel = 0
-TeleportMode.Text = "Teleport"
-TeleportMode.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeleportMode.Font = Enum.Font.Gotham
-TeleportMode.TextSize = 14
-TeleportMode.Parent = ModeFrame
 
-local CameraMode = Instance.new("TextButton")
-CameraMode.Name = "CameraMode"
+local CameraMode = createButton(ModeFrame, "Camera", 35)
 CameraMode.Size = UDim2.new(0.45, 0, 1, 0)
 CameraMode.Position = UDim2.new(0.55, 0, 0, 0)
-CameraMode.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-CameraMode.BorderSizePixel = 0
-CameraMode.Text = "Camera"
-CameraMode.TextColor3 = Color3.fromRGB(255, 255, 255)
-CameraMode.Font = Enum.Font.Gotham
-CameraMode.TextSize = 14
-CameraMode.Parent = ModeFrame
 
--- Новые функции: Speed Hack и NoClip
-local FunctionFrame = Instance.new("Frame")
-FunctionFrame.Name = "FunctionFrame"
-FunctionFrame.Size = UDim2.new(0.9, 0, 0, 30)
-FunctionFrame.Position = UDim2.new(0.05, 0, 0, 160)
-FunctionFrame.BackgroundTransparency = 1
-FunctionFrame.Parent = ContentFrame
+-- Элементы вкладки Movement
+local SpeedHackButton = createButton(MovementTab, "Speed Hack: OFF", 35)
+SpeedHackButton.Position = UDim2.new(0.05, 0, 0, 10)
 
-local SpeedHackButton = Instance.new("TextButton")
-SpeedHackButton.Name = "SpeedHackButton"
-SpeedHackButton.Size = UDim2.new(0.45, 0, 1, 0)
-SpeedHackButton.Position = UDim2.new(0, 0, 0, 0)
-SpeedHackButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-SpeedHackButton.BorderSizePixel = 0
-SpeedHackButton.Text = "Speed: "..currentSpeed
-SpeedHackButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-SpeedHackButton.Font = Enum.Font.Gotham
-SpeedHackButton.TextSize = 14
-SpeedHackButton.Parent = FunctionFrame
+local speedSlider = createSlider(MovementTab, "Speed", 16, 300, settings.speed, function(value)
+    settings.speed = value
+    if settings.speedHack and LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = value
+        end
+    end
+end)
+speedSlider.Position = UDim2.new(0.05, 0, 0, 55)
 
-local NoClipButton = Instance.new("TextButton")
-NoClipButton.Name = "NoClipButton"
-NoClipButton.Size = UDim2.new(0.45, 0, 1, 0)
-NoClipButton.Position = UDim2.new(0.55, 0, 0, 0)
-NoClipButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-NoClipButton.BorderSizePixel = 0
-NoClipButton.Text = "NoClip: OFF"
-NoClipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-NoClipButton.Font = Enum.Font.Gotham
-NoClipButton.TextSize = 14
-NoClipButton.Parent = FunctionFrame
+local NoClipButton = createButton(MovementTab, "NoClip: OFF", 35)
+NoClipButton.Position = UDim2.new(0.05, 0, 0, 115)
 
--- Кнопки управления
-local FollowButton = Instance.new("TextButton")
-FollowButton.Name = "FollowButton"
-FollowButton.Size = UDim2.new(0.9, 0, 0, 30)
-FollowButton.Position = UDim2.new(0.05, 0, 0, 200)
-FollowButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-FollowButton.BorderSizePixel = 0
-FollowButton.Text = "Follow Player"
-FollowButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FollowButton.Font = Enum.Font.Gotham
-FollowButton.TextSize = 14
-FollowButton.Parent = ContentFrame
-
-local TeleportOnceButton = Instance.new("TextButton")
-TeleportOnceButton.Name = "TeleportOnceButton"
-TeleportOnceButton.Size = UDim2.new(0.9, 0, 0, 30)
-TeleportOnceButton.Position = UDim2.new(0.05, 0, 0, 235)
-TeleportOnceButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-TeleportOnceButton.BorderSizePixel = 0
-TeleportOnceButton.Text = "Teleport Once"
-TeleportOnceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeleportOnceButton.Font = Enum.Font.Gotham
-TeleportOnceButton.TextSize = 14
-TeleportOnceButton.Parent = ContentFrame
+-- Элементы вкладки Visual
+local TransparencySlider = createSlider(VisualTab, "NoClip Transparency", 0.1, 0.9, settings.noClipTransparency, function(value)
+    settings.noClipTransparency = value
+    for part, _ in pairs(noClipParts) do
+        if part and part.Parent then
+            part.LocalTransparencyModifier = value
+        end
+    end
+end)
+TransparencySlider.Position = UDim2.new(0.05, 0, 0, 10)
 
 -- Функции
 local function UpdatePlayerList()
@@ -211,235 +323,236 @@ local function UpdatePlayerList()
     
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            local PlayerButton = Instance.new("TextButton")
+            local PlayerButton = createButton(PlayerList, player.Name, 25)
             PlayerButton.Name = player.Name
-            PlayerButton.Size = UDim2.new(1, -10, 0, 25)
-            PlayerButton.Position = UDim2.new(0, 5, 0, 0)
-            PlayerButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            PlayerButton.BorderSizePixel = 0
-            PlayerButton.Text = player.Name
-            PlayerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            PlayerButton.Font = Enum.Font.Gotham
-            PlayerButton.TextSize = 12
             PlayerButton.TextXAlignment = Enum.TextXAlignment.Left
-            PlayerButton.Parent = PlayerList
+            PlayerButton.TextSize = 12
             
             PlayerButton.MouseButton1Click:Connect(function()
                 for _, btn in ipairs(PlayerList:GetChildren()) do
                     if btn:IsA("TextButton") then
-                        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
                     end
                 end
                 PlayerButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-                followTarget = player
+                settings.followTarget = player
             end)
         end
     end
 end
 
 local function SetFollowMode(mode)
-    followMode = mode
     if mode == "Teleport" then
+        settings.followMode = "Teleport"
         TeleportMode.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-        CameraMode.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        CameraMode.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
     else
-        TeleportMode.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        settings.followMode = "Camera"
+        TeleportMode.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         CameraMode.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
     end
 end
 
 local function StartFollowing()
-    if not followTarget then 
+    if not settings.followTarget then 
         warn("No player selected!")
         return 
     end
     
-    following = true
+    settings.following = true
+    FollowButton.Text = "Following "..settings.followTarget.Name
     FollowButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-    FollowButton.Text = "Following "..followTarget.Name
     
-    if followMode == "Teleport" then
-        -- Режим плотного слежения телепортом
-        local connection
-        connection = RunService.Heartbeat:Connect(function()
-            if not following or not followTarget or not followTarget.Character then
-                connection:Disconnect()
+    if followConnection then followConnection:Disconnect() end
+    
+    if settings.followMode == "Teleport" then
+        followConnection = RunService.Heartbeat:Connect(function()
+            if not settings.following or not settings.followTarget or not settings.followTarget.Character then
                 return
             end
             
-            local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
+            local targetHRP = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                -- Телепортируемся прямо за спину игрока
-                local offset = CFrame.new(0, 0, 1.5)
-                LocalPlayer.Character:SetPrimaryPartCFrame(targetHRP.CFrame * offset)
+                LocalPlayer.Character:SetPrimaryPartCFrame(targetHRP.CFrame * CFrame.new(0, 0, 1.5))
             end
         end)
     else
-        -- Режим камеры с возможностью вращения
+        if cameraConnection then cameraConnection:Disconnect() end
+        
         Camera.CameraType = Enum.CameraType.Scriptable
-        local connection
-        connection = RunService.RenderStepped:Connect(function()
-            if not following or not followTarget or not followTarget.Character then
-                connection:Disconnect()
+        cameraConnection = RunService.RenderStepped:Connect(function()
+            if not settings.following or not settings.followTarget or not settings.followTarget.Character then
                 return
             end
             
-            local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
+            local targetHRP = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
-                local cameraCFrame = targetHRP.CFrame * CFrame.new(0, 2, -cameraDistance)
-                cameraCFrame = cameraCFrame * CFrame.Angles(0, cameraAngle, 0)
-                Camera.CFrame = cameraCFrame
+                local angleCFrame = CFrame.Angles(
+                    math.rad(settings.cameraAngleY),
+                    math.rad(settings.cameraAngleX),
+                    0
+                )
+                
+                local offset = angleCFrame * CFrame.new(0, 0, settings.cameraDistance)
+                Camera.CFrame = targetHRP.CFrame * offset * CFrame.Angles(0, math.pi, 0)
             end
         end)
     end
 end
 
 local function StopFollowing()
-    following = false
-    FollowButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    settings.following = false
     FollowButton.Text = "Follow Player"
+    FollowButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    
+    if followConnection then followConnection:Disconnect() end
+    if cameraConnection then cameraConnection:Disconnect() end
+    
     Camera.CameraType = Enum.CameraType.Custom
 end
 
-local function ToggleMinimize()
-    isMinimized = not isMinimized
-    
-    if isMinimized then
-        MainFrame.Size = minimizedSize
-        ContentFrame.Visible = false
-        MinimizeButton.Text = "+"
-    else
-        MainFrame.Size = originalSize
-        ContentFrame.Visible = true
-        MinimizeButton.Text = "_"
-    end
-end
-
 local function ToggleSpeedHack()
-    speedHackEnabled = not speedHackEnabled
-    if speedHackEnabled then
-        SpeedHackButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-    else
-        SpeedHackButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        if LocalPlayer.Character then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 16 -- Возвращаем стандартную скорость
+    settings.speedHack = not settings.speedHack
+    SpeedHackButton.Text = "Speed Hack: "..(settings.speedHack and "ON" or "OFF")
+    SpeedHackButton.BackgroundColor3 = settings.speedHack and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(60, 60, 70)
+    
+    if speedConnection then speedConnection:Disconnect() end
+    
+    if settings.speedHack then
+        speedConnection = RunService.Heartbeat:Connect(function()
+            if LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = settings.speed
+                end
             end
+        end)
+    elseif LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 16
         end
     end
 end
 
 local function ToggleNoClip()
-    noClipEnabled = not noClipEnabled
-    if noClipEnabled then
-        NoClipButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-        NoClipButton.Text = "NoClip: ON"
+    settings.noClip = not settings.noClip
+    NoClipButton.Text = "NoClip: "..(settings.noClip and "ON" or "OFF")
+    NoClipButton.BackgroundColor3 = settings.noClip and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(60, 60, 70)
+    
+    if noClipConnection then noClipConnection:Disconnect() end
+    
+    if settings.noClip then
+        -- Очищаем старые части
+        for part, _ in pairs(noClipParts) do
+            if part and part.Parent then
+                part.LocalTransparencyModifier = 0
+            end
+        end
+        noClipParts = {}
+        
+        noClipConnection = RunService.Heartbeat:Connect(function()
+            if not LocalPlayer.Character then return end
+            
+            local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            
+            -- Находим все части рядом с игроком
+            local parts = workspace:GetPartsInPart(root, 5)
+            
+            for _, part in ipairs(parts) do
+                if part.CanCollide and not noClipParts[part] and part.Parent ~= LocalPlayer.Character then
+                    noClipParts[part] = true
+                    part.LocalTransparencyModifier = settings.noClipTransparency
+                end
+            end
+        end)
     else
-        NoClipButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        NoClipButton.Text = "NoClip: OFF"
+        -- Восстанавливаем прозрачность
+        for part, _ in pairs(noClipParts) do
+            if part and part.Parent then
+                part.LocalTransparencyModifier = 0
+            end
+        end
+        noClipParts = {}
     end
 end
 
 local function TeleportToPlayer()
-    if followTarget and followTarget.Character then
-        local hrp = followTarget.Character:FindFirstChild("HumanoidRootPart")
+    if settings.followTarget and settings.followTarget.Character then
+        local hrp = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
         if hrp and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.Character:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(0, 0, 2))
         end
     end
 end
 
--- Обработка Speed Hack и NoClip
-RunService.Heartbeat:Connect(function()
-    -- Speed Hack
-    if speedHackEnabled and LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = currentSpeed
-        end
-    end
+local function SwitchTab(tabName)
+    settings.activeTab = tabName
+    MainTab.Visible = false
+    MovementTab.Visible = false
+    VisualTab.Visible = false
     
-    -- NoClip
-    if noClipEnabled and LocalPlayer.Character then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
+    MainTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    MovementTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    VisualTabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    
+    if tabName == "Main" then
+        MainTab.Visible = true
+        MainTabButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    elseif tabName == "Movement" then
+        MovementTab.Visible = true
+        MovementTabButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    elseif tabName == "Visual" then
+        VisualTab.Visible = true
+        VisualTabButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
     end
-end)
-
--- Вращение камеры
+end
 local cameraRotating = false
 local lastTouchPos = nil
 
 UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch and following and followMode == "Camera" then
+    if input.UserInputType == Enum.UserInputType.Touch and settings.following and settings.followMode == "Camera" then
         cameraRotating = true
         lastTouchPos = input.Position
     end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch then
         cameraRotating = false
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if cameraRotating and input.UserInputType == Enum.UserInputType.Touch and lastTouchPos then
         local delta = input.Position - lastTouchPos
-        cameraAngle = cameraAngle + delta.X * 0.01
-        cameraDistance = math.clamp(cameraDistance - delta.Y * 0.1, 2, 15)
+        settings.cameraAngleX = (settings.cameraAngleX - delta.X * 0.5) % 360
+        settings.cameraAngleY = math.clamp(settings.cameraAngleY + delta.Y * 0.2, -80, 80)
         lastTouchPos = input.Position
     end
 end)
-
--- Настройка скорости через ползунок
-local speedSliderDragging = false
-SpeedHackButton.MouseButton1Down:Connect(function(x, y)
-    speedSliderDragging = true
-    local percent = math.clamp((x - SpeedHackButton.AbsolutePosition.X) / SpeedHackButton.AbsoluteSize.X, 0, 1)
-    currentSpeed = math.floor(16 + (300 - 16) * percent)
-    SpeedHackButton.Text = "Speed: "..currentSpeed
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        speedSliderDragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if speedSliderDragging and input.UserInputType == Enum.UserInputType.Touch then
-        local percent = math.clamp((input.Position.X - SpeedHackButton.AbsolutePosition.X) / SpeedHackButton.AbsoluteSize.X, 0, 1)
-        currentSpeed = math.floor(16 + (300 - 16) * percent)
-        SpeedHackButton.Text = "Speed: "..currentSpeed
-    end
-end)
-
--- Подключение событий
 Players.PlayerAdded:Connect(UpdatePlayerList)
 Players.PlayerRemoving:Connect(UpdatePlayerList)
 TeleportMode.MouseButton1Click:Connect(function() SetFollowMode("Teleport") end)
 CameraMode.MouseButton1Click:Connect(function() SetFollowMode("Camera") end)
 FollowButton.MouseButton1Click:Connect(function()
-    if following then
+    if settings.following then
         StopFollowing()
     else
         StartFollowing()
     end
 end)
-MinimizeButton.MouseButton1Click:Connect(ToggleMinimize)
+TeleportButton.MouseButton1Click:Connect(TeleportToPlayer)
+SpeedHackButton.MouseButton1Click:Connect(ToggleSpeedHack)
+NoClipButton.MouseButton1Click:Connect(ToggleNoClip)
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
     StopFollowing()
+    if speedConnection then speedConnection:Disconnect() end
+    if noClipConnection then noClipConnection:Disconnect() end
 end)
-SpeedHackButton.MouseButton1Click:Connect(ToggleSpeedHack)
-NoClipButton.MouseButton1Click:Connect(ToggleNoClip)
-TeleportOnceButton.MouseButton1Click:Connect(TeleportToPlayer)
-
--- Инициализация
+MainTabButton.MouseButton1Click:Connect(function() SwitchTab("Main") end)
+MovementTabButton.MouseButton1Click:Connect(function() SwitchTab("Movement") end)
+VisualTabButton.MouseButton1Click:Connect(function() SwitchTab("Visual") end)
 UpdatePlayerList()
 SetFollowMode("Teleport")
+SwitchTab("Main")
