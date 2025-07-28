@@ -8,8 +8,8 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 -- Удаляем старый GUI если есть
-if CoreGui:FindFirstChild("MobileFollowGUI") then
-    CoreGui.MobileFollowGUI:Destroy()
+if CoreGui:FindFirstChild("MobileFollowMini") then
+    CoreGui.MobileFollowMini:Destroy()
 end
 
 -- Настройки
@@ -17,51 +17,37 @@ local settings = {
     speed = 16,
     speedHack = false,
     noClip = false,
-    cameraRotation = Vector2.new(0, 0),
-    cameraDistance = 5,
-    followMode = "Teleport",
-    followTarget = nil,
-    following = false
+    following = false,
+    followTarget = nil
 }
 
 -- Создаем мобильный GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MobileFollowGUI"
+ScreenGui.Name = "MobileFollowMini"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- Основной фрейм
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(1, -20, 0, 40)
-MainFrame.Position = UDim2.new(0.5, -10, 0, 10)
+MainFrame.Size = UDim2.new(0.8, 0, 0, 40)
+MainFrame.Position = UDim2.new(0.5, 0, 0.1, 0)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
--- Заголовок
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Mobile Follow v2"
+-- Заголовок с кнопкой развернуть/свернуть
+local Title = Instance.new("TextButton")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+Title.BorderSizePixel = 0
+Title.Text = "Mobile Follow Mini ▼"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
 Title.Parent = MainFrame
 
--- Кнопка развернуть/свернуть
-local ExpandButton = Instance.new("TextButton")
-ExpandButton.Size = UDim2.new(0, 40, 1, 0)
-ExpandButton.Position = UDim2.new(1, -40, 0, 0)
-ExpandButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-ExpandButton.BorderSizePixel = 0
-ExpandButton.Text = "▼"
-ExpandButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ExpandButton.Font = Enum.Font.GothamBold
-ExpandButton.TextSize = 16
-ExpandButton.Parent = MainFrame
-
--- Расширенный контент
+-- Контент меню
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Size = UDim2.new(1, 0, 0, 0)
 ContentFrame.Position = UDim2.new(0, 0, 1, 5)
@@ -70,41 +56,11 @@ ContentFrame.BorderSizePixel = 0
 ContentFrame.ClipsDescendants = true
 ContentFrame.Parent = MainFrame
 
--- Функции
-local function updateContentSize()
-    local height = 0
-    for _, child in ipairs(ContentFrame:GetChildren()) do
-        if child:IsA("Frame") and child.Visible then
-            height = height + child.AbsoluteSize.Y + 5
-        end
-    end
-    ContentFrame.Size = UDim2.new(1, 0, 0, height)
-end
-
-local function createSection(title)
-    local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, -10, 0, 0)
-    section.Position = UDim2.new(0, 5, 0, 0)
-    section.BackgroundTransparency = 1
-    section.Parent = ContentFrame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 20)
-    label.BackgroundTransparency = 1
-    label.Text = title
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = section
-    
-    return section
-end
-
-local function createButton(parent, text, callback)
+-- Функции для создания элементов
+local function createButton(text, callback, parent)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 30)
-    button.Position = UDim2.new(0, 0, 0, 0)
+    button.Size = UDim2.new(1, -10, 0, 35)
+    button.Position = UDim2.new(0, 5, 0, 0)
     button.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
     button.BorderSizePixel = 0
     button.Text = text
@@ -118,53 +74,47 @@ local function createButton(parent, text, callback)
     return button
 end
 
-local function createSlider(parent, text, min, max, value, callback)
+local function createSlider(parent, min, max, value, callback)
     local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, 0, 0, 40)
-    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Size = UDim2.new(0.5, -10, 0, 35)
+    sliderFrame.Position = UDim2.new(0.5, 5, 0, 0)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    sliderFrame.BorderSizePixel = 0
     sliderFrame.Parent = parent
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 20)
-    label.BackgroundTransparency = 1
-    label.Text = text..": "..value
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 12
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = sliderFrame
-    
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(1, 0, 0, 10)
-    slider.Position = UDim2.new(0, 0, 0, 25)
-    slider.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    slider.BorderSizePixel = 0
-    slider.Parent = sliderFrame
     
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((value - min)/(max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
     fill.BorderSizePixel = 0
-    fill.Parent = slider
+    fill.Parent = sliderFrame
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(1, 0, 1, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(value)
+    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextSize = 12
+    valueLabel.Parent = sliderFrame
     
     local dragging = false
     
     local function updateValue(x)
-        local percent = math.clamp((x - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+        local percent = math.clamp((x - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
         local newValue = math.floor(min + (max - min) * percent)
         fill.Size = UDim2.new(percent, 0, 1, 0)
-        label.Text = text..": "..newValue
+        valueLabel.Text = tostring(newValue)
         callback(newValue)
     end
     
-    slider.InputBegan:Connect(function(input)
+    sliderFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
-            updateValue(input.Position.X + slider.AbsolutePosition.X)
+            updateValue(input.Position.X + sliderFrame.AbsolutePosition.X)
         end
     end)
     
-    slider.InputEnded:Connect(function(input)
+    sliderFrame.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
@@ -172,120 +122,58 @@ local function createSlider(parent, text, min, max, value, callback)
     
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.Touch then
-            updateValue(input.Position.X + slider.AbsolutePosition.X)
+            updateValue(input.Position.X + sliderFrame.AbsolutePosition.X)
         end
     end)
     
     return sliderFrame
 end
 
--- Секция игроков
-local playersSection = createSection("Players")
-playersSection.Size = UDim2.new(1, 0, 0, 120)
+-- Создаем элементы меню
+local speedHackButton = createButton("Speed Hack: OFF", function()
+    settings.speedHack = not settings.speedHack
+    speedHackButton.Text = "Speed Hack: "..(settings.speedHack and "ON" or "OFF")
+end, ContentFrame)
 
-local playerList = Instance.new("ScrollingFrame")
-playerList.Size = UDim2.new(1, 0, 0, 100)
-playerList.Position = UDim2.new(0, 0, 0, 20)
-playerList.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-playerList.BorderSizePixel = 0
-playerList.ScrollBarThickness = 4
-playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
-playerList.Parent = playersSection
-
-local playerListLayout = Instance.new("UIListLayout")
-playerListLayout.Padding = UDim.new(0, 5)
-playerListLayout.Parent = playerList
-
-local function updatePlayerList()
-    for _, child in ipairs(playerList:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local button = createButton(playerList, player.Name, function()
-                settings.followTarget = player
-            end)
-            button.Size = UDim2.new(1, -10, 0, 30)
-            button.Position = UDim2.new(0, 5, 0, 0)
-        end
-    end
-end
-
--- Секция режимов
-local modeSection = createSection("Follow Mode")
-local teleportButton = createButton(modeSection, "Teleport", function()
-    settings.followMode = "Teleport"
-    teleportButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-    cameraButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-end)
-teleportButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-
-local cameraButton = createButton(modeSection, "Camera", function()
-    settings.followMode = "Camera"
-    cameraButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
-    teleportButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-end)
-
--- Секция управления
-local controlSection = createSection("Controls")
-local followButton = createButton(controlSection, "Start Following", function()
-    if settings.following then
-        settings.following = false
-        followButton.Text = "Start Following"
-        Camera.CameraType = Enum.CameraType.Custom
-    else
-        if settings.followTarget then
-            settings.following = true
-            followButton.Text = "Stop Following"
-        end
-    end
-end)
-
-local teleportOnceButton = createButton(controlSection, "Teleport Once", function()
-    if settings.followTarget and settings.followTarget.Character then
-        local hrp = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
-        if hrp and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(0, 0, 1.5))
-        end
-    end
-end)
-
--- Секция настроек
-local settingsSection = createSection("Settings")
-createSlider(settingsSection, "Speed", 1, 50, settings.speed, function(value)
+local speedSlider = createSlider(speedHackButton, 1, 300, settings.speed, function(value)
     settings.speed = value
 end)
 
-local speedHackToggle = createButton(settingsSection, "Speed Hack: OFF", function()
-    settings.speedHack = not settings.speedHack
-    speedHackToggle.Text = "Speed Hack: "..(settings.speedHack and "ON" or "OFF")
-end)
-
-local noClipToggle = createButton(settingsSection, "NoClip: OFF", function()
+local noClipButton = createButton("NoClip: OFF", function()
     settings.noClip = not settings.noClip
-    noClipToggle.Text = "NoClip: "..(settings.noClip and "ON" or "OFF")
-end)
+    noClipButton.Text = "NoClip: "..(settings.noClip and "ON" or "OFF")
+end, ContentFrame)
 
--- Обработка слежения
-RunService.Heartbeat:Connect(function()
-    if settings.following and settings.followTarget and settings.followTarget.Character then
-        local targetHRP = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
-        if targetHRP then
-            if settings.followMode == "Teleport" then
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character:SetPrimaryPartCFrame(targetHRP.CFrame * CFrame.new(0, 0, 1.5))
-                end
-            else
-                Camera.CameraType = Enum.CameraType.Scriptable
-                Camera.CFrame = targetHRP.CFrame * CFrame.new(0, 2, -settings.cameraDistance) * CFrame.Angles(settings.cameraRotation.Y, settings.cameraRotation.X, 0)
+local followButton = createButton("Follow Player: OFF", function()
+    if not settings.followTarget then
+        -- Простой выбор первого игрока (можно улучшить)
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                settings.followTarget = player
+                break
             end
         end
     end
     
+    settings.following = not settings.following
+    followButton.Text = "Follow Player: "..(settings.following and "ON" or "OFF")
+    
+    if not settings.following then
+        Camera.CameraType = Enum.CameraType.Custom
+    end
+end, ContentFrame)
+
+local teleportButton = createButton("Teleport to Player", function()
+    if settings.followTarget and settings.followTarget.Character then
+        local hrp = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(0, 0, 2))
+        end
+    end
+end, ContentFrame)
+
+-- Обработка слежения и функций
+RunService.Heartbeat:Connect(function()
     -- Speed hack
     if settings.speedHack and LocalPlayer.Character then
         local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -302,52 +190,32 @@ RunService.Heartbeat:Connect(function()
             end
         end
     end
-end)
-
--- Вращение камеры
-local cameraRotating = false
-local lastTouchPos = nil
-
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        cameraRotating = true
-        lastTouchPos = input.Position
+    
+    -- Following
+    if settings.following and settings.followTarget and settings.followTarget.Character then
+        local targetHRP = settings.followTarget.Character:FindFirstChild("HumanoidRootPart")
+        if targetHRP and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            Camera.CameraType = Enum.CameraType.Scriptable
+            Camera.CFrame = targetHRP.CFrame * CFrame.new(0, 3, -5)
+            LocalPlayer.Character:SetPrimaryPartCFrame(targetHRP.CFrame * CFrame.new(0, 0, 2))
+        end
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        cameraRotating = false
-        lastTouchPos = nil
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if cameraRotating and input.UserInputType == Enum.UserInputType.Touch and lastTouchPos then
-        local delta = input.Position - lastTouchPos
-        settings.cameraRotation = settings.cameraRotation + Vector2.new(delta.X * 0.01, delta.Y * 0.01)
-        lastTouchPos = input.Position
-    end
-end)
-
--- Развернуть/свернуть GUI
+-- Развернуть/свернуть меню
 local expanded = false
-ExpandButton.MouseButton1Click:Connect(function()
+Title.MouseButton1Click:Connect(function()
     expanded = not expanded
     if expanded then
         ContentFrame.Visible = true
-        ExpandButton.Text = "▲"
-        updateContentSize()
+        ContentFrame.Size = UDim2.new(1, 0, 0, 180)
+        Title.Text = "Mobile Follow Mini ▲"
     else
         ContentFrame.Visible = false
-        ExpandButton.Text = "▼"
         ContentFrame.Size = UDim2.new(1, 0, 0, 0)
+        Title.Text = "Mobile Follow Mini ▼"
     end
 end)
 
 -- Инициализация
-updatePlayerList()
-Players.PlayerAdded:Connect(updatePlayerList)
-Players.PlayerRemoving:Connect(updatePlayerList)
-updateContentSize()
 ContentFrame.Visible = false
