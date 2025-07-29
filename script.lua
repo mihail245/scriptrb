@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local TextChatService = game:GetService("TextChatService")
 local HttpService = game:GetService("HttpService")
 local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
 
 -- Удаляем старое меню если есть
 if game.CoreGui:FindFirstChild("UltimateGUI") then
@@ -32,14 +33,11 @@ local noclipConnection = nil
 local antiAfkEnabled = false
 local afkInterval = 10 -- minutes
 local afkConnection = nil
-local chatLogEnabled = true
-local filteredWords = {"badword1", "badword2"}
 local infiniteJumpEnabled = false
 local jumpHeight = 50
-local showCoords = true
 local spinbotEnabled = false
 local flingEnabled = false
-local chatMessages = {}
+local platformPart = nil
 
 -- Создаем GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -128,7 +126,7 @@ TabButtons.Parent = MainFrame
 
 local TPButton = Instance.new("TextButton")
 TPButton.Name = "TPButton"
-TPButton.Size = UDim2.new(0.25, 0, 1, 0)
+TPButton.Size = UDim2.new(0.333, 0, 1, 0)
 TPButton.Position = UDim2.new(0, 0, 0, 0)
 TPButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 TPButton.BorderSizePixel = 0
@@ -140,8 +138,8 @@ TPButton.Parent = TabButtons
 
 local PlayerButton = Instance.new("TextButton")
 PlayerButton.Name = "PlayerButton"
-PlayerButton.Size = UDim2.new(0.25, 0, 1, 0)
-PlayerButton.Position = UDim2.new(0.25, 0, 0, 0)
+PlayerButton.Size = UDim2.new(0.333, 0, 1, 0)
+PlayerButton.Position = UDim2.new(0.333, 0, 0, 0)
 PlayerButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 PlayerButton.BorderSizePixel = 0
 PlayerButton.Text = "Player"
@@ -150,22 +148,10 @@ PlayerButton.Font = Enum.Font.Gotham
 PlayerButton.TextSize = 14
 PlayerButton.Parent = TabButtons
 
-local ChatButton = Instance.new("TextButton")
-ChatButton.Name = "ChatButton"
-ChatButton.Size = UDim2.new(0.25, 0, 1, 0)
-ChatButton.Position = UDim2.new(0.5, 0, 0, 0)
-ChatButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-ChatButton.BorderSizePixel = 0
-ChatButton.Text = "Chat"
-ChatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ChatButton.Font = Enum.Font.Gotham
-ChatButton.TextSize = 14
-ChatButton.Parent = TabButtons
-
 local MiscButton = Instance.new("TextButton")
 MiscButton.Name = "MiscButton"
-MiscButton.Size = UDim2.new(0.25, 0, 1, 0)
-MiscButton.Position = UDim2.new(0.75, 0, 0, 0)
+MiscButton.Size = UDim2.new(0.334, 0, 1, 0)
+MiscButton.Position = UDim2.new(0.666, 0, 0, 0)
 MiscButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 MiscButton.BorderSizePixel = 0
 MiscButton.Text = "Misc"
@@ -253,6 +239,19 @@ FollowButton.Font = Enum.Font.Gotham
 FollowButton.TextSize = 14
 FollowButton.Parent = TPTab
 
+-- Кнопка телепорта в сейв зону
+local SafeZoneButton = Instance.new("TextButton")
+SafeZoneButton.Name = "SafeZoneButton"
+SafeZoneButton.Size = UDim2.new(0.9, 0, 0, 30)
+SafeZoneButton.Position = UDim2.new(0.05, 0, 0, 220)
+SafeZoneButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+SafeZoneButton.BorderSizePixel = 0
+SafeZoneButton.Text = "Teleport to Safe Zone"
+SafeZoneButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SafeZoneButton.Font = Enum.Font.Gotham
+SafeZoneButton.TextSize = 14
+SafeZoneButton.Parent = TPTab
+
 -- Вкладка Player
 local PlayerTab = Instance.new("Frame")
 PlayerTab.Name = "PlayerTab"
@@ -265,7 +264,7 @@ PlayerTab.Parent = ContentFrame
 -- Infinite Jump
 local InfiniteJumpFrame = Instance.new("Frame")
 InfiniteJumpFrame.Name = "InfiniteJumpFrame"
-InfiniteJumpFrame.Size = UDim2.new(0.9, 0, 0, 60)
+InfiniteJumpFrame.Size = UDim2.new(0.9, 0, 0, 30)
 InfiniteJumpFrame.Position = UDim2.new(0.05, 0, 0, 10)
 InfiniteJumpFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 InfiniteJumpFrame.BorderSizePixel = 0
@@ -273,7 +272,7 @@ InfiniteJumpFrame.Parent = PlayerTab
 
 local InfiniteJumpLabel = Instance.new("TextLabel")
 InfiniteJumpLabel.Name = "InfiniteJumpLabel"
-InfiniteJumpLabel.Size = UDim2.new(0.5, 0, 0, 30)
+InfiniteJumpLabel.Size = UDim2.new(0.5, 0, 1, 0)
 InfiniteJumpLabel.Position = UDim2.new(0, 5, 0, 0)
 InfiniteJumpLabel.BackgroundTransparency = 1
 InfiniteJumpLabel.Text = "Infinite Jump"
@@ -285,8 +284,8 @@ InfiniteJumpLabel.Parent = InfiniteJumpFrame
 
 local InfiniteJumpToggle = Instance.new("TextButton")
 InfiniteJumpToggle.Name = "InfiniteJumpToggle"
-InfiniteJumpToggle.Size = UDim2.new(0.4, 0, 0, 25)
-InfiniteJumpToggle.Position = UDim2.new(0.55, 0, 0, 3)
+InfiniteJumpToggle.Size = UDim2.new(0.4, 0, 0.8, 0)
+InfiniteJumpToggle.Position = UDim2.new(0.55, 0, 0.1, 0)
 InfiniteJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 InfiniteJumpToggle.BorderSizePixel = 0
 InfiniteJumpToggle.Text = "OFF"
@@ -295,23 +294,24 @@ InfiniteJumpToggle.Font = Enum.Font.Gotham
 InfiniteJumpToggle.TextSize = 14
 InfiniteJumpToggle.Parent = InfiniteJumpFrame
 
-local JumpHeightBox = Instance.new("TextBox")
-JumpHeightBox.Name = "JumpHeightBox"
-JumpHeightBox.Size = UDim2.new(0.9, 0, 0, 25)
-JumpHeightBox.Position = UDim2.new(0.05, 0, 0, 30)
-JumpHeightBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-JumpHeightBox.BorderSizePixel = 0
-JumpHeightBox.Text = tostring(jumpHeight)
-JumpHeightBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-JumpHeightBox.Font = Enum.Font.Gotham
-JumpHeightBox.TextSize = 14
-JumpHeightBox.Parent = InfiniteJumpFrame
+-- Кнопка респавна
+local RespawnButton = Instance.new("TextButton")
+RespawnButton.Name = "RespawnButton"
+RespawnButton.Size = UDim2.new(0.9, 0, 0, 30)
+RespawnButton.Position = UDim2.new(0.05, 0, 0, 50)
+RespawnButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+RespawnButton.BorderSizePixel = 0
+RespawnButton.Text = "Respawn Character"
+RespawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+RespawnButton.Font = Enum.Font.Gotham
+RespawnButton.TextSize = 14
+RespawnButton.Parent = PlayerTab
 
 -- Спидхак
 local SpeedFrame = Instance.new("Frame")
 SpeedFrame.Name = "SpeedFrame"
 SpeedFrame.Size = UDim2.new(0.9, 0, 0, 60)
-SpeedFrame.Position = UDim2.new(0.05, 0, 0, 80)
+SpeedFrame.Position = UDim2.new(0.05, 0, 0, 90)
 SpeedFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 SpeedFrame.BorderSizePixel = 0
 SpeedFrame.Parent = PlayerTab
@@ -356,7 +356,7 @@ SpeedBox.Parent = SpeedFrame
 local NoclipFrame = Instance.new("Frame")
 NoclipFrame.Name = "NoclipFrame"
 NoclipFrame.Size = UDim2.new(0.9, 0, 0, 30)
-NoclipFrame.Position = UDim2.new(0.05, 0, 0, 150)
+NoclipFrame.Position = UDim2.new(0.05, 0, 0, 160)
 NoclipFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 NoclipFrame.BorderSizePixel = 0
 NoclipFrame.Parent = PlayerTab
@@ -389,7 +389,7 @@ NoclipToggle.Parent = NoclipFrame
 local AntiAFKFrame = Instance.new("Frame")
 AntiAFKFrame.Name = "AntiAFKFrame"
 AntiAFKFrame.Size = UDim2.new(0.9, 0, 0, 60)
-AntiAFKFrame.Position = UDim2.new(0.05, 0, 0, 190)
+AntiAFKFrame.Position = UDim2.new(0.05, 0, 0, 200)
 AntiAFKFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 AntiAFKFrame.BorderSizePixel = 0
 AntiAFKFrame.Parent = PlayerTab
@@ -430,42 +430,6 @@ AntiAFKBox.Font = Enum.Font.Gotham
 AntiAFKBox.TextSize = 14
 AntiAFKBox.Parent = AntiAFKFrame
 
--- Вкладка Chat
-local ChatTab = Instance.new("Frame")
-ChatTab.Name = "ChatTab"
-ChatTab.Size = UDim2.new(1, 0, 1, 0)
-ChatTab.Position = UDim2.new(0, 0, 0, 0)
-ChatTab.BackgroundTransparency = 1
-ChatTab.Visible = false
-ChatTab.Parent = ContentFrame
-
-local ChatLogFrame = Instance.new("ScrollingFrame")
-ChatLogFrame.Name = "ChatLogFrame"
-ChatLogFrame.Size = UDim2.new(0.9, 0, 0, 250)
-ChatLogFrame.Position = UDim2.new(0.05, 0, 0, 10)
-ChatLogFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ChatLogFrame.BorderSizePixel = 0
-ChatLogFrame.ScrollBarThickness = 5
-ChatLogFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ChatLogFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ChatLogFrame.Parent = ChatTab
-
-local ChatLogLayout = Instance.new("UIListLayout")
-ChatLogLayout.Padding = UDim.new(0, 5)
-ChatLogLayout.Parent = ChatLogFrame
-
-local ChatLogLabel = Instance.new("TextLabel")
-ChatLogLabel.Name = "ChatLogLabel"
-ChatLogLabel.Size = UDim2.new(0.9, 0, 0, 20)
-ChatLogLabel.Position = UDim2.new(0.05, 0, 0, 270)
-ChatLogLabel.BackgroundTransparency = 1
-ChatLogLabel.Text = "Chat Log (last 50 messages)"
-ChatLogLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-ChatLogLabel.TextXAlignment = Enum.TextXAlignment.Left
-ChatLogLabel.Font = Enum.Font.Gotham
-ChatLogLabel.TextSize = 12
-ChatLogLabel.Parent = ChatTab
-
 -- Вкладка Misc
 local MiscTab = Instance.new("Frame")
 MiscTab.Name = "MiscTab"
@@ -478,7 +442,7 @@ MiscTab.Parent = ContentFrame
 -- Spinbot/Fling
 local SpinbotFrame = Instance.new("Frame")
 SpinbotFrame.Name = "SpinbotFrame"
-SpinbotFrame.Size = UDim2.new(0.9, 0, 0, 60)
+SpinbotFrame.Size = UDim2.new(0.9, 0, 0, 30)
 SpinbotFrame.Position = UDim2.new(0.05, 0, 0, 10)
 SpinbotFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 SpinbotFrame.BorderSizePixel = 0
@@ -486,7 +450,7 @@ SpinbotFrame.Parent = MiscTab
 
 local SpinbotLabel = Instance.new("TextLabel")
 SpinbotLabel.Name = "SpinbotLabel"
-SpinbotLabel.Size = UDim2.new(0.5, 0, 0, 30)
+SpinbotLabel.Size = UDim2.new(0.5, 0, 1, 0)
 SpinbotLabel.Position = UDim2.new(0, 5, 0, 0)
 SpinbotLabel.BackgroundTransparency = 1
 SpinbotLabel.Text = "Spinbot/Fling"
@@ -498,8 +462,8 @@ SpinbotLabel.Parent = SpinbotFrame
 
 local SpinbotToggle = Instance.new("TextButton")
 SpinbotToggle.Name = "SpinbotToggle"
-SpinbotToggle.Size = UDim2.new(0.4, 0, 0, 25)
-SpinbotToggle.Position = UDim2.new(0.55, 0, 0, 3)
+SpinbotToggle.Size = UDim2.new(0.4, 0, 0.8, 0)
+SpinbotToggle.Position = UDim2.new(0.55, 0, 0.1, 0)
 SpinbotToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 SpinbotToggle.BorderSizePixel = 0
 SpinbotToggle.Text = "OFF"
@@ -507,53 +471,6 @@ SpinbotToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 SpinbotToggle.Font = Enum.Font.Gotham
 SpinbotToggle.TextSize = 14
 SpinbotToggle.Parent = SpinbotFrame
-
--- Координаты
-local CoordsFrame = Instance.new("Frame")
-CoordsFrame.Name = "CoordsFrame"
-CoordsFrame.Size = UDim2.new(0.9, 0, 0, 60)
-CoordsFrame.Position = UDim2.new(0.05, 0, 0, 80)
-CoordsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-CoordsFrame.BorderSizePixel = 0
-CoordsFrame.Parent = MiscTab
-
-local CoordsLabel = Instance.new("TextLabel")
-CoordsLabel.Name = "CoordsLabel"
-CoordsLabel.Size = UDim2.new(0.5, 0, 0, 30)
-CoordsLabel.Position = UDim2.new(0, 5, 0, 0)
-CoordsLabel.BackgroundTransparency = 1
-CoordsLabel.Text = "Show Coords"
-CoordsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-CoordsLabel.TextXAlignment = Enum.TextXAlignment.Left
-CoordsLabel.Font = Enum.Font.Gotham
-CoordsLabel.TextSize = 14
-CoordsLabel.Parent = CoordsFrame
-
-local CoordsToggle = Instance.new("TextButton")
-CoordsToggle.Name = "CoordsToggle"
-CoordsToggle.Size = UDim2.new(0.4, 0, 0, 25)
-CoordsToggle.Position = UDim2.new(0.55, 0, 0, 3)
-CoordsToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-CoordsToggle.BorderSizePixel = 0
-CoordsToggle.Text = "ON"
-CoordsToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-CoordsToggle.Font = Enum.Font.Gotham
-CoordsToggle.TextSize = 14
-CoordsToggle.Parent = CoordsFrame
-
--- Координаты внизу экрана
-local CoordsDisplayBottom = Instance.new("TextLabel")
-CoordsDisplayBottom.Name = "CoordsDisplayBottom"
-CoordsDisplayBottom.Size = UDim2.new(0, 200, 0, 20)
-CoordsDisplayBottom.Position = UDim2.new(0, 10, 1, -30)
-CoordsDisplayBottom.BackgroundTransparency = 1
-CoordsDisplayBottom.Text = "X: 0, Y: 0, Z: 0"
-CoordsDisplayBottom.TextColor3 = Color3.fromRGB(255, 255, 255)
-CoordsDisplayBottom.TextXAlignment = Enum.TextXAlignment.Left
-CoordsDisplayBottom.Font = Enum.Font.Gotham
-CoordsDisplayBottom.TextSize = 12
-CoordsDisplayBottom.Visible = true
-CoordsDisplayBottom.Parent = ScreenGui
 
 -- Функции
 local function UpdatePlayerList()
@@ -751,6 +668,45 @@ local function ToggleInfiniteJump()
     end
 end
 
+local function RespawnCharacter()
+    if LocalPlayer.Character then
+        LocalPlayer.Character:BreakJoints()
+    end
+end
+
+local function TeleportToSafeZone()
+    if not LocalPlayer.Character then return end
+    
+    local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    -- Телепорт вверх
+    root.CFrame = root.CFrame + Vector3.new(0, 100, 0)
+    
+    -- Создание платформы
+    if platformPart then
+        platformPart:Destroy()
+    end
+    
+    platformPart = Instance.new("Part")
+    platformPart.Name = "SafePlatform"
+    platformPart.Size = Vector3.new(10, 1, 10)
+    platformPart.Anchored = true
+    platformPart.Transparency = 0.5
+    platformPart.Material = Enum.Material.Neon
+    platformPart.Color = Color3.fromRGB(0, 255, 0)
+    platformPart.CFrame = root.CFrame - Vector3.new(0, 3, 0)
+    platformPart.Parent = workspace
+    
+    -- Автоудаление через 10 секунд
+    task.delay(10, function()
+        if platformPart then
+            platformPart:Destroy()
+            platformPart = nil
+        end
+    end)
+end
+
 local function ToggleSpinbot()
     spinbotEnabled = not spinbotEnabled
     flingEnabled = spinbotEnabled
@@ -771,11 +727,18 @@ local function ToggleSpinbot()
                 -- Вращение
                 root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(30), 0)
                 
-                -- Флинг (отбрасывание при касании)
+                -- Флинг (отбрасывание других игроков при касании)
                 if flingEnabled then
-                    for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.Velocity = Vector3.new(math.random(-100,100), 1000, math.random(-100,100))
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                            if targetRoot and (root.Position - targetRoot.Position).Magnitude < 5 then
+                                targetRoot.Velocity = Vector3.new(
+                                    math.random(-1000, 1000),
+                                    1000,
+                                    math.random(-1000, 1000)
+                                )
+                            end
                         end
                     end
                 end
@@ -794,37 +757,17 @@ local function ToggleAntiAFK()
         AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
         AntiAFKToggle.Text = "ON"
         
-        local actions = {
-            function() -- Прыжок
-                if LocalPlayer.Character then
-                    local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                    end
-                end
-            end,
-            function() -- Движение
-                if LocalPlayer.Character then
-                    local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        humanoid:Move(Vector3.new(math.random(-1,1), 0, math.random(-1,1)))
-                    end
-                end
-            end,
-            function() -- Эмоция
-                if LocalPlayer.Character then
-                    local animate = LocalPlayer.Character:FindFirstChild("Animate")
-                    if animate then
-                        animate.idle.Animation1.AnimationId = "rbxassetid://"..tostring(math.random(1000000,9999999))
-                    end
-                end
-            end
-        }
-        
         afkConnection = RunService.Heartbeat:Connect(function()
             if not antiAfkEnabled then return end
-            task.wait(afkInterval * 60)
-            actions[math.random(1,#actions)]()
+            task.wait(afkInterval * 60) -- Ждем указанное количество минут
+            
+            -- Просто прыгаем каждые 10 минут
+            if LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end
         end)
     else
         AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -837,85 +780,13 @@ local function ToggleAntiAFK()
     end
 end
 
-local function AddChatMessage(message)
-    if not ChatLogFrame then return end
-    
-    -- Очистка старых сообщений (максимум 50)
-    while #ChatLogFrame:GetChildren() > 50 do
-        ChatLogFrame:GetChildren()[2]:Destroy()
-    end
-    
-    local MessageLabel = Instance.new("TextLabel")
-    MessageLabel.Name = "Message_"..tick()
-    MessageLabel.Size = UDim2.new(1, -10, 0, 20)
-    MessageLabel.Position = UDim2.new(0, 5, 0, 0)
-    MessageLabel.BackgroundTransparency = 1
-    MessageLabel.Text = message
-    MessageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
-    MessageLabel.Font = Enum.Font.Gotham
-    MessageLabel.TextSize = 12
-    MessageLabel.TextWrapped = true
-    MessageLabel.Parent = ChatLogFrame
-    
-    -- Автоскролл вниз
-    ChatLogFrame.CanvasPosition = Vector2.new(0, ChatLogFrame.AbsoluteCanvasSize.Y)
-end
-
-local function FilterMessage(message)
-    local lowerMessage = string.lower(message)
-    for _, word in ipairs(filteredWords) do
-        if string.find(lowerMessage, string.lower(word)) then
-            return true
-        end
-    end
-    return false
-end
-
-local function SetupChatLogger()
-    -- Логирование новых сообщений
-    if TextChatService.OnIncomingMessage then
-        TextChatService.OnIncomingMessage:Connect(function(message)
-            if not chatLogEnabled then return end
-            
-            local text = message.Text
-            local sender = message.TextSource
-            local isFiltered = FilterMessage(text)
-            
-            if not isFiltered then
-                AddChatMessage("["..sender.Name.."]: "..text)
-            end
-        end)
-    else
-        warn("Chat logging not supported in this game")
-    end
-end
-
-local function ToggleCoords()
-    showCoords = not showCoords
-    CoordsDisplayBottom.Visible = showCoords
-    CoordsToggle.Text = showCoords and "ON" or "OFF"
-    CoordsToggle.BackgroundColor3 = showCoords and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
-end
-
-local function UpdateCoordinates()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local pos = LocalPlayer.Character.HumanoidRootPart.Position
-        CoordsDisplayBottom.Text = string.format("X: %.1f, Y: %.1f, Z: %.1f", pos.X, pos.Y, pos.Z)
-    else
-        CoordsDisplayBottom.Text = "X: 0, Y: 0, Z: 0"
-    end
-end
-
 local function SwitchTab(tab)
     TPTab.Visible = (tab == "TP")
     PlayerTab.Visible = (tab == "Player")
-    ChatTab.Visible = (tab == "Chat")
     MiscTab.Visible = (tab == "Misc")
     
     TPButton.BackgroundColor3 = (tab == "TP") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
     PlayerButton.BackgroundColor3 = (tab == "Player") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
-    ChatButton.BackgroundColor3 = (tab == "Chat") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
     MiscButton.BackgroundColor3 = (tab == "Misc") and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(70, 70, 70)
 end
 
@@ -926,8 +797,7 @@ MiniIcon.MouseButton1Click:Connect(function()
 end)
 
 CloseButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    MiniIcon.Visible = true
+    ScreenGui:Destroy()
 end)
 
 MinimizeButton.MouseButton1Click:Connect(function()
@@ -937,7 +807,6 @@ end)
 
 TPButton.MouseButton1Click:Connect(function() SwitchTab("TP") end)
 PlayerButton.MouseButton1Click:Connect(function() SwitchTab("Player") end)
-ChatButton.MouseButton1Click:Connect(function() SwitchTab("Chat") end)
 MiscButton.MouseButton1Click:Connect(function() SwitchTab("Misc") end)
 
 TeleportMode.MouseButton1Click:Connect(function() SetFollowMode("Teleport") end)
@@ -950,12 +819,14 @@ FollowButton.MouseButton1Click:Connect(function()
     end
 end)
 
+SafeZoneButton.MouseButton1Click:Connect(TeleportToSafeZone)
+RespawnButton.MouseButton1Click:Connect(RespawnCharacter)
+
 SpeedToggle.MouseButton1Click:Connect(ToggleSpeedHack)
 NoclipToggle.MouseButton1Click:Connect(ToggleNoclip)
 InfiniteJumpToggle.MouseButton1Click:Connect(ToggleInfiniteJump)
 SpinbotToggle.MouseButton1Click:Connect(ToggleSpinbot)
 AntiAFKToggle.MouseButton1Click:Connect(ToggleAntiAFK)
-CoordsToggle.MouseButton1Click:Connect(ToggleCoords)
 
 SpeedBox.FocusLost:Connect(function()
     local newSpeed = tonumber(SpeedBox.Text)
@@ -971,16 +842,6 @@ SpeedBox.FocusLost:Connect(function()
         SpeedBox.Text = tostring(speedValue)
     end
 end)
-
-JumpHeightBox.FocusLost:Connect(function()
-    local newHeight = tonumber(JumpHeightBox.Text)
-    if newHeight and newHeight > 0 then
-        jumpHeight = newHeight
-    else
-        JumpHeightBox.Text = tostring(jumpHeight)
-    end
-end)
-
 AntiAFKBox.FocusLost:Connect(function()
     local newInterval = tonumber(AntiAFKBox.Text)
     if newInterval and newInterval > 0 then
@@ -989,15 +850,17 @@ AntiAFKBox.FocusLost:Connect(function()
         AntiAFKBox.Text = tostring(afkInterval)
     end
 end)
-
--- Инициализация
 UpdatePlayerList()
 SetFollowMode("Teleport")
 SwitchTab("TP")
-SetupChatLogger()
-
--- Обновление координат
-RunService.Heartbeat:Connect(UpdateCoordinates)
-
--- Добавляем тестовое сообщение в чат
-AddChatMessage("Chat logger initialized!")
+LocalPlayer.CharacterAdded:Connect(function(character)
+    if speedHackEnabled then
+        task.wait(0.5)
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = speedValue
+        end
+    end
+end)
+Players.PlayerAdded:Connect(UpdatePlayerList)
+Players.PlayerRemoving:Connect(UpdatePlayerList)
