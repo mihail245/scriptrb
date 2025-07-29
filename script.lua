@@ -237,7 +237,7 @@ FollowButton.Font = Enum.Font.Gotham
 FollowButton.TextSize = 14
 FollowButton.Parent = TPTab
 
--- Кнопка телепорта в сейв зону
+-- Кнопка телепорта в сейф зону
 local SafeZoneButton = Instance.new("TextButton")
 SafeZoneButton.Name = "SafeZoneButton"
 SafeZoneButton.Size = UDim2.new(0.9, 0, 0, 30)
@@ -720,6 +720,7 @@ local function ToggleSpinbot()
         SpinbotToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
         SpinbotToggle.Text = "ON"
         
+        -- Улучшенный спинбот с флингом
         local spinConnection
         spinConnection = RunService.Heartbeat:Connect(function()
             if not spinbotEnabled or not LocalPlayer.Character then
@@ -729,8 +730,29 @@ local function ToggleSpinbot()
             
             local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if root then
-                -- Вращение без изменения позиции
-                root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(30), 0)
+                -- Вращение с высокой скоростью
+                root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, tick() * 20 % (2 * math.pi), 0)
+                
+                -- Флинг всех игроков в радиусе
+                if flingEnabled then
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                            if targetRoot then
+                                -- Отправляем игрока в космос с огромной скоростью
+                                targetRoot.Velocity = Vector3.new(0, 10000, 0)
+                                targetRoot.RotVelocity = Vector3.new(math.random(-100, 100), math.random(-100, 100), math.random(-100, 100))
+                                
+                                -- Убиваем игрока через 3 секунды (если не убьет падение)
+                                delay(3, function()
+                                    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+                                        player.Character:BreakJoints()
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                end
             end
         end)
     else
