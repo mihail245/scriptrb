@@ -1,9 +1,6 @@
--- Проверяем загрузку игры
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
-
--- Сервисы
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -871,7 +868,5 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         end
     end
 end)
-
--- Обновление списка игроков
 Players.PlayerAdded:Connect(UpdatePlayerList)
 Players.PlayerRemoving:Connect(UpdatePlayerList)
