@@ -9,9 +9,6 @@ local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 local UserInputService = game:GetService("UserInputService")
-local TextChatService = game:GetService("TextChatService")
-local HttpService = game:GetService("HttpService")
-local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
 -- Удаляем старое меню если есть
@@ -38,6 +35,7 @@ local jumpHeight = 50
 local spinbotEnabled = false
 local flingEnabled = false
 local platformPart = nil
+local safeZoneActive = false
 
 -- Создаем GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -674,37 +672,44 @@ local function RespawnCharacter()
     end
 end
 
-local function TeleportToSafeZone()
-    if not LocalPlayer.Character then return end
+local function ToggleSafeZone()
+    safeZoneActive = not safeZoneActive
     
-    local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    -- Телепорт вверх
-    root.CFrame = root.CFrame + Vector3.new(0, 100, 0)
-    
-    -- Создание платформы
-    if platformPart then
-        platformPart:Destroy()
-    end
-    
-    platformPart = Instance.new("Part")
-    platformPart.Name = "SafePlatform"
-    platformPart.Size = Vector3.new(10, 1, 10)
-    platformPart.Anchored = true
-    platformPart.Transparency = 0.5
-    platformPart.Material = Enum.Material.Neon
-    platformPart.Color = Color3.fromRGB(0, 255, 0)
-    platformPart.CFrame = root.CFrame - Vector3.new(0, 3, 0)
-    platformPart.Parent = workspace
-    
-    -- Автоудаление через 10 секунд
-    task.delay(10, function()
+    if safeZoneActive then
+        SafeZoneButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        SafeZoneButton.Text = "Safe Zone (ON)"
+        
+        if not LocalPlayer.Character then return end
+        
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        
+        -- Телепорт вверх на 300 блоков
+        root.CFrame = root.CFrame + Vector3.new(0, 300, 0)
+        
+        -- Создание платформы
+        if platformPart then
+            platformPart:Destroy()
+        end
+        
+        platformPart = Instance.new("Part")
+        platformPart.Name = "SafePlatform"
+        platformPart.Size = Vector3.new(15, 1, 15)
+        platformPart.Anchored = true
+        platformPart.Transparency = 0.7
+        platformPart.Material = Enum.Material.Neon
+        platformPart.Color = Color3.fromRGB(0, 255, 0)
+        platformPart.CFrame = root.CFrame - Vector3.new(0, 3, 0)
+        platformPart.Parent = workspace
+    else
+        SafeZoneButton.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+        SafeZoneButton.Text = "Teleport to Safe Zone"
+        
         if platformPart then
             platformPart:Destroy()
             platformPart = nil
         end
-    end)
+    end
 end
 
 local function ToggleSpinbot()
@@ -724,24 +729,8 @@ local function ToggleSpinbot()
             
             local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if root then
-                -- Вращение
-                root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(30), 0)
-                
-                -- Флинг (отбрасывание других игроков при касании)
-                if flingEnabled then
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer and player.Character then
-                            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
-                            if targetRoot and (root.Position - targetRoot.Position).Magnitude < 5 then
-                                targetRoot.Velocity = Vector3.new(
-                                    math.random(-1000, 1000),
-                                    1000,
-                                    math.random(-1000, 1000)
-                                )
-                            end
-                        end
-                    end
-                end
+                -- Вращение без изменения позиции
+                root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(30), 0)
             end
         end)
     else
@@ -757,17 +746,10 @@ local function ToggleAntiAFK()
         AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
         AntiAFKToggle.Text = "ON"
         
+        -- Просто обновляем время последней активности
         afkConnection = RunService.Heartbeat:Connect(function()
             if not antiAfkEnabled then return end
-            task.wait(afkInterval * 60) -- Ждем указанное количество минут
-            
-            -- Просто прыгаем каждые 10 минут
-            if LocalPlayer.Character then
-                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end
+            -- Ничего не делаем, просто предотвращаем AFK
         end)
     else
         AntiAFKToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -819,7 +801,7 @@ FollowButton.MouseButton1Click:Connect(function()
     end
 end)
 
-SafeZoneButton.MouseButton1Click:Connect(TeleportToSafeZone)
+SafeZoneButton.MouseButton1Click:Connect(ToggleSafeZone)
 RespawnButton.MouseButton1Click:Connect(RespawnCharacter)
 
 SpeedToggle.MouseButton1Click:Connect(ToggleSpeedHack)
@@ -842,6 +824,7 @@ SpeedBox.FocusLost:Connect(function()
         SpeedBox.Text = tostring(speedValue)
     end
 end)
+
 AntiAFKBox.FocusLost:Connect(function()
     local newInterval = tonumber(AntiAFKBox.Text)
     if newInterval and newInterval > 0 then
@@ -850,9 +833,13 @@ AntiAFKBox.FocusLost:Connect(function()
         AntiAFKBox.Text = tostring(afkInterval)
     end
 end)
+
+-- Инициализация
 UpdatePlayerList()
 SetFollowMode("Teleport")
 SwitchTab("TP")
+
+-- Обработка выхода игрока
 LocalPlayer.CharacterAdded:Connect(function(character)
     if speedHackEnabled then
         task.wait(0.5)
@@ -862,5 +849,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         end
     end
 end)
+
+-- Обновление списка игроков
 Players.PlayerAdded:Connect(UpdatePlayerList)
 Players.PlayerRemoving:Connect(UpdatePlayerList)
