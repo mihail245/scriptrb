@@ -1,4 +1,4 @@
--- Ultimate Menu v2.0 Enhanced
+-- Ultimate Menu v2.1 Enhanced
 -- by github.com/YourUsername
 
 -- Проверяем загрузку игры
@@ -18,6 +18,7 @@ local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 
 -- Удаляем старое меню если есть
 if CoreGui:FindFirstChild("UltimateGUI") then
@@ -26,8 +27,8 @@ end
 
 -- Настройки
 local isMinimized = false
-local originalSize = UDim2.new(0, 450, 0, 500)
-local minimizedSize = UDim2.new(0, 450, 0, 40)
+local originalSize = UDim2.new(0, 350, 0, 500)
+local minimizedSize = UDim2.new(0, 350, 0, 40)
 local following = false
 local followMode = "Teleport"
 local followTarget = nil
@@ -54,7 +55,7 @@ local noFog = false
 local fullbright = false
 local xrayEnabled = false
 local chatSpamEnabled = false
-local spamMessages = {"Ultimate Menu v2.0!", "Powered by Lua", "Check out my scripts!"}
+local spamMessages = {"Ultimate Menu v2.1!", "Powered by Lua", "Check out my scripts!"}
 local spamInterval = 5
 local spamConnection = nil
 local spinSpeed = 20
@@ -69,14 +70,14 @@ local originalAmbient = Lighting.Ambient
 local originalColor = Lighting.OutdoorAmbient
 
 -- Цветовая схема
-local accentColor = Color3.fromRGB(0, 170, 255)
-local darkColor = Color3.fromRGB(30, 30, 40)
-local darkerColor = Color3.fromRGB(20, 20, 30)
-local textColor = Color3.fromRGB(240, 240, 240)
-local buttonColor = Color3.fromRGB(50, 50, 60)
+local accentColor = Color3.fromRGB(0, 120, 215)
+local darkColor = Color3.fromRGB(45, 45, 45)
+local darkerColor = Color3.fromRGB(30, 30, 30)
+local textColor = Color3.fromRGB(255, 255, 255)
+local buttonColor = Color3.fromRGB(60, 60, 60)
 local toggleOffColor = Color3.fromRGB(80, 80, 80)
-local toggleOnColor = Color3.fromRGB(0, 200, 100)
-local warningColor = Color3.fromRGB(255, 80, 80)
+local toggleOnColor = Color3.fromRGB(0, 170, 0)
+local warningColor = Color3.fromRGB(200, 50, 50)
 
 -- Создаем GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -87,14 +88,14 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 -- Мини-иконка (перемещаемая)
 local MiniIcon = Instance.new("TextButton")
 MiniIcon.Name = "MiniIcon"
-MiniIcon.Size = UDim2.new(0, 50, 0, 50)
-MiniIcon.Position = UDim2.new(0, 10, 0.5, -25)
+MiniIcon.Size = UDim2.new(0, 40, 0, 40)
+MiniIcon.Position = UDim2.new(0, 10, 0.5, -20)
 MiniIcon.BackgroundColor3 = accentColor
 MiniIcon.BorderSizePixel = 0
 MiniIcon.Text = ">"
 MiniIcon.TextColor3 = textColor
 MiniIcon.Font = Enum.Font.GothamBold
-MiniIcon.TextSize = 24
+MiniIcon.TextSize = 18
 MiniIcon.Visible = false
 MiniIcon.Active = true
 MiniIcon.Draggable = true
@@ -104,30 +105,18 @@ MiniIcon.Parent = ScreenGui
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = originalSize
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -250)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
 MainFrame.BackgroundColor3 = darkColor
-MainFrame.BorderSizePixel = 0
+MainFrame.BorderSizePixel = 1
+MainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Тень
-local Shadow = Instance.new("ImageLabel")
-Shadow.Name = "Shadow"
-Shadow.Size = UDim2.new(1, 10, 1, 10)
-Shadow.Position = UDim2.new(0, -5, 0, -5)
-Shadow.BackgroundTransparency = 1
-Shadow.Image = "rbxassetid://1316045217"
-Shadow.ImageColor3 = Color3.new(0, 0, 0)
-Shadow.ImageTransparency = 0.8
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-Shadow.Parent = MainFrame
-
 -- Заголовок
 local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
 TitleBar.Position = UDim2.new(0, 0, 0, 0)
 TitleBar.BackgroundColor3 = darkerColor
 TitleBar.BorderSizePixel = 0
@@ -136,45 +125,45 @@ TitleBar.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(0, 200, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "ULTIMATE MENU v2.0"
+Title.Text = "Ultimate Menu v2.1"
 Title.TextColor3 = textColor
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
+Title.TextSize = 14
 Title.Parent = TitleBar
 
 -- Кнопки управления окном
 local MinimizeButton = Instance.new("TextButton")
 MinimizeButton.Name = "MinimizeButton"
-MinimizeButton.Size = UDim2.new(0, 40, 1, 0)
-MinimizeButton.Position = UDim2.new(1, -90, 0, 0)
+MinimizeButton.Size = UDim2.new(0, 30, 1, 0)
+MinimizeButton.Position = UDim2.new(1, -60, 0, 0)
 MinimizeButton.BackgroundColor3 = buttonColor
 MinimizeButton.BorderSizePixel = 0
 MinimizeButton.Text = "_"
 MinimizeButton.TextColor3 = textColor
 MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.TextSize = 18
+MinimizeButton.TextSize = 14
 MinimizeButton.Parent = TitleBar
 
 local CloseButton = Instance.new("TextButton")
 CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 40, 1, 0)
-CloseButton.Position = UDim2.new(1, -40, 0, 0)
+CloseButton.Size = UDim2.new(0, 30, 1, 0)
+CloseButton.Position = UDim2.new(1, -30, 0, 0)
 CloseButton.BackgroundColor3 = warningColor
 CloseButton.BorderSizePixel = 0
 CloseButton.Text = "X"
 CloseButton.TextColor3 = textColor
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 18
+CloseButton.TextSize = 14
 CloseButton.Parent = TitleBar
 
 -- Вкладки
 local TabButtons = Instance.new("Frame")
 TabButtons.Name = "TabButtons"
-TabButtons.Size = UDim2.new(1, 0, 0, 40)
-TabButtons.Position = UDim2.new(0, 0, 0, 40)
+TabButtons.Size = UDim2.new(1, 0, 0, 30)
+TabButtons.Position = UDim2.new(0, 0, 0, 30)
 TabButtons.BackgroundTransparency = 1
 TabButtons.Parent = MainFrame
 
@@ -184,9 +173,9 @@ PlayerTabButton.Size = UDim2.new(0.25, 0, 1, 0)
 PlayerTabButton.Position = UDim2.new(0, 0, 0, 0)
 PlayerTabButton.BackgroundColor3 = accentColor
 PlayerTabButton.BorderSizePixel = 0
-PlayerTabButton.Text = "PLAYER"
+PlayerTabButton.Text = "Player"
 PlayerTabButton.TextColor3 = textColor
-PlayerTabButton.Font = Enum.Font.GothamBold
+PlayerTabButton.Font = Enum.Font.Gotham
 PlayerTabButton.TextSize = 14
 PlayerTabButton.Parent = TabButtons
 
@@ -196,9 +185,9 @@ CombatTabButton.Size = UDim2.new(0.25, 0, 1, 0)
 CombatTabButton.Position = UDim2.new(0.25, 0, 0, 0)
 CombatTabButton.BackgroundColor3 = buttonColor
 CombatTabButton.BorderSizePixel = 0
-CombatTabButton.Text = "COMBAT"
+CombatTabButton.Text = "Combat"
 CombatTabButton.TextColor3 = textColor
-CombatTabButton.Font = Enum.Font.GothamBold
+CombatTabButton.Font = Enum.Font.Gotham
 CombatTabButton.TextSize = 14
 CombatTabButton.Parent = TabButtons
 
@@ -208,9 +197,9 @@ WorldTabButton.Size = UDim2.new(0.25, 0, 1, 0)
 WorldTabButton.Position = UDim2.new(0.5, 0, 0, 0)
 WorldTabButton.BackgroundColor3 = buttonColor
 WorldTabButton.BorderSizePixel = 0
-WorldTabButton.Text = "WORLD"
+WorldTabButton.Text = "World"
 WorldTabButton.TextColor3 = textColor
-WorldTabButton.Font = Enum.Font.GothamBold
+WorldTabButton.Font = Enum.Font.Gotham
 WorldTabButton.TextSize = 14
 WorldTabButton.Parent = TabButtons
 
@@ -220,22 +209,22 @@ MiscTabButton.Size = UDim2.new(0.25, 0, 1, 0)
 MiscTabButton.Position = UDim2.new(0.75, 0, 0, 0)
 MiscTabButton.BackgroundColor3 = buttonColor
 MiscTabButton.BorderSizePixel = 0
-MiscTabButton.Text = "MISC"
+MiscTabButton.Text = "Misc"
 MiscTabButton.TextColor3 = textColor
-MiscTabButton.Font = Enum.Font.GothamBold
+MiscTabButton.Font = Enum.Font.Gotham
 MiscTabButton.TextSize = 14
 MiscTabButton.Parent = TabButtons
 
 -- Основное содержимое
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, 0, 1, -80)
-ContentFrame.Position = UDim2.new(0, 0, 0, 80)
+ContentFrame.Size = UDim2.new(1, 0, 1, -60)
+ContentFrame.Position = UDim2.new(0, 0, 0, 60)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Visible = true
 ContentFrame.Parent = MainFrame
 
--- Вкладка Player
+-- Вкладки
 local PlayerTab = Instance.new("ScrollingFrame")
 PlayerTab.Name = "PlayerTab"
 PlayerTab.Size = UDim2.new(1, 0, 1, 0)
@@ -247,7 +236,6 @@ PlayerTab.AutomaticCanvasSize = Enum.AutomaticSize.Y
 PlayerTab.CanvasSize = UDim2.new(0, 0, 0, 0)
 PlayerTab.Parent = ContentFrame
 
--- Вкладка Combat
 local CombatTab = Instance.new("ScrollingFrame")
 CombatTab.Name = "CombatTab"
 CombatTab.Size = UDim2.new(1, 0, 1, 0)
@@ -259,7 +247,6 @@ CombatTab.AutomaticCanvasSize = Enum.AutomaticSize.Y
 CombatTab.CanvasSize = UDim2.new(0, 0, 0, 0)
 CombatTab.Parent = ContentFrame
 
--- Вкладка World
 local WorldTab = Instance.new("ScrollingFrame")
 WorldTab.Name = "WorldTab"
 WorldTab.Size = UDim2.new(1, 0, 1, 0)
@@ -271,7 +258,6 @@ WorldTab.AutomaticCanvasSize = Enum.AutomaticSize.Y
 WorldTab.CanvasSize = UDim2.new(0, 0, 0, 0)
 WorldTab.Parent = ContentFrame
 
--- Вкладка Misc
 local MiscTab = Instance.new("ScrollingFrame")
 MiscTab.Name = "MiscTab"
 MiscTab.Size = UDim2.new(1, 0, 1, 0)
@@ -287,7 +273,7 @@ MiscTab.Parent = ContentFrame
 local function CreateButton(name, text, parent, yPos)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0.9, 0, 0, 35)
+    button.Size = UDim2.new(0.9, 0, 0, 30)
     button.Position = UDim2.new(0.05, 0, 0, yPos)
     button.BackgroundColor3 = buttonColor
     button.BorderSizePixel = 0
@@ -297,17 +283,13 @@ local function CreateButton(name, text, parent, yPos)
     button.TextSize = 14
     button.Parent = parent
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 5)
-    corner.Parent = button
-    
     return button
 end
 
 local function CreateToggle(name, text, parent, yPos)
     local frame = Instance.new("Frame")
     frame.Name = name.."Frame"
-    frame.Size = UDim2.new(0.9, 0, 0, 35)
+    frame.Size = UDim2.new(0.9, 0, 0, 30)
     frame.Position = UDim2.new(0.05, 0, 0, yPos)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
@@ -336,14 +318,10 @@ local function CreateToggle(name, text, parent, yPos)
     toggle.TextSize = 14
     toggle.Parent = frame
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 5)
-    corner.Parent = toggle
-    
     return toggle
 end
 
-local function CreateSlider(name, text, parent, yPos, min, max, default)
+local function CreateInput(name, text, parent, yPos, default)
     local frame = Instance.new("Frame")
     frame.Name = name.."Frame"
     frame.Size = UDim2.new(0.9, 0, 0, 50)
@@ -363,104 +341,38 @@ local function CreateSlider(name, text, parent, yPos, min, max, default)
     label.TextSize = 14
     label.Parent = frame
     
-    local slider = Instance.new("Frame")
-    slider.Name = name.."Slider"
-    slider.Size = UDim2.new(1, 0, 0, 20)
-    slider.Position = UDim2.new(0, 0, 0, 25)
-    slider.BackgroundColor3 = buttonColor
-    slider.BorderSizePixel = 0
-    slider.Parent = frame
+    local input = Instance.new("TextBox")
+    input.Name = name.."Input"
+    input.Size = UDim2.new(1, 0, 0, 25)
+    input.Position = UDim2.new(0, 0, 0, 25)
+    input.BackgroundColor3 = buttonColor
+    input.BorderSizePixel = 0
+    input.Text = tostring(default)
+    input.TextColor3 = textColor
+    input.Font = Enum.Font.Gotham
+    input.TextSize = 14
+    input.Parent = frame
     
-    local fill = Instance.new("Frame")
-    fill.Name = name.."Fill"
-    fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
-    fill.Position = UDim2.new(0, 0, 0, 0)
-    fill.BackgroundColor3 = accentColor
-    fill.BorderSizePixel = 0
-    fill.Parent = slider
-    
-    local value = Instance.new("TextLabel")
-    value.Name = name.."Value"
-    value.Size = UDim2.new(1, 0, 1, 0)
-    value.Position = UDim2.new(0, 0, 0, 0)
-    value.BackgroundTransparency = 1
-    value.Text = tostring(default)
-    value.TextColor3 = textColor
-    value.Font = Enum.Font.GothamBold
-    value.TextSize = 14
-    value.Parent = slider
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 5)
-    corner.Parent = slider
-    
-    local corner2 = Instance.new("UICorner")
-    corner2.CornerRadius = UDim.new(0, 5)
-    corner2.Parent = fill
-    
-    -- Функционал слайдера
-    local dragging = false
-    
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
-    
-    slider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local xPos = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-            fill.Size = UDim2.new(xPos, 0, 1, 0)
-            local currentValue = math.floor(min + (max - min) * xPos)
-            value.Text = tostring(currentValue)
-            
-            -- Обновляем значение
-            if name == "Speed" then
-                speedValue = currentValue
-                if speedHackEnabled then
-                    local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        humanoid.WalkSpeed = speedValue
-                    end
-                end
-            elseif name == "Jump" then
-                jumpHeight = currentValue
-            elseif name == "SpinSpeed" then
-                spinSpeed = currentValue
-            elseif name == "FlingPower" then
-                flingPower = currentValue
-            elseif name == "FlySpeed" then
-                flySpeed = currentValue
-            end
-        end
-    end)
-    
-    return slider
+    return input
 end
 
 -- Создаем элементы для вкладки Player
 local SpeedToggle = CreateToggle("Speed", "Speed Hack", PlayerTab, 10)
-local SpeedSlider = CreateSlider("Speed", "Speed Value", PlayerTab, 50, 16, 200, speedValue)
+local SpeedInput = CreateInput("Speed", "Speed Value", PlayerTab, 50, speedValue)
 
 local JumpToggle = CreateToggle("Jump", "Infinite Jump", PlayerTab, 110)
-local JumpSlider = CreateSlider("Jump", "Jump Height", PlayerTab, 150, 20, 200, jumpHeight)
+local JumpInput = CreateInput("Jump", "Jump Height", PlayerTab, 150, jumpHeight)
 
 local NoclipToggle = CreateToggle("Noclip", "Noclip", PlayerTab, 210)
 local FlyToggle = CreateToggle("Fly", "Fly Mode", PlayerTab, 260)
-local FlySlider = CreateSlider("FlySpeed", "Fly Speed", PlayerTab, 300, 20, 200, flySpeed)
+local FlyInput = CreateInput("FlySpeed", "Fly Speed", PlayerTab, 300, flySpeed)
 
 local RespawnButton = CreateButton("Respawn", "Respawn Character", PlayerTab, 360)
 
 -- Создаем элементы для вкладки Combat
 local SpinbotToggle = CreateToggle("Spinbot", "Spinbot", CombatTab, 10)
-local SpinSpeedSlider = CreateSlider("SpinSpeed", "Spin Speed", CombatTab, 50, 5, 50, spinSpeed)
-local FlingPowerSlider = CreateSlider("FlingPower", "Fling Power", CombatTab, 110, 1000, 20000, flingPower)
+local SpinSpeedInput = CreateInput("SpinSpeed", "Spin Speed", CombatTab, 50, spinSpeed)
+local FlingPowerInput = CreateInput("FlingPower", "Fling Power", CombatTab, 110, flingPower)
 
 local AimbotToggle = CreateToggle("Aimbot", "Aimbot", CombatTab, 170)
 local ESPToggle = CreateToggle("ESP", "ESP", CombatTab, 220)
@@ -475,6 +387,8 @@ local XrayToggle = CreateToggle("Xray", "X-Ray", WorldTab, 210)
 -- Создаем элементы для вкладки Misc
 local AntiAFKToggle = CreateToggle("AntiAFK", "Anti-AFK", MiscTab, 10)
 local ChatSpamToggle = CreateToggle("ChatSpam", "Chat Spam", MiscTab, 60)
+local SpamMessageInput = CreateInput("SpamMessage", "Spam Message", MiscTab, 110, spamMessages[1])
+local SpamIntervalInput = CreateInput("SpamInterval", "Spam Interval (sec)", MiscTab, 170, spamInterval)
 
 -- Функции
 local function ToggleMinimize()
@@ -510,6 +424,8 @@ local function ToggleSpeedHack()
         SpeedToggle.BackgroundColor3 = toggleOnColor
         SpeedToggle.Text = "ON"
         
+        speedValue = tonumber(SpeedInput.Text) or speedValue
+        
         local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.WalkSpeed = speedValue
@@ -539,6 +455,8 @@ local function ToggleInfiniteJump()
     if infiniteJumpEnabled then
         JumpToggle.BackgroundColor3 = toggleOnColor
         JumpToggle.Text = "ON"
+        
+        jumpHeight = tonumber(JumpInput.Text) or jumpHeight
         
         UserInputService.JumpRequest:Connect(function()
             if infiniteJumpEnabled and LocalPlayer.Character then
@@ -596,6 +514,8 @@ local function ToggleFly()
     if flyEnabled then
         FlyToggle.BackgroundColor3 = toggleOnColor
         FlyToggle.Text = "ON"
+        
+        flySpeed = tonumber(FlyInput.Text) or flySpeed
         
         if flyConnection then
             flyConnection:Disconnect()
@@ -675,6 +595,9 @@ local function ToggleSpinbot()
     if spinbotEnabled then
         SpinbotToggle.BackgroundColor3 = toggleOnColor
         SpinbotToggle.Text = "ON"
+        
+        spinSpeed = tonumber(SpinSpeedInput.Text) or spinSpeed
+        flingPower = tonumber(FlingPowerInput.Text) or flingPower
         
         if spinbotConnection then
             spinbotConnection:Disconnect()
@@ -1004,25 +927,37 @@ local function ToggleChatSpam()
             spamConnection:Disconnect()
         end
         
-        local function SendMessage(message)
-            local args = {
-                [1] = message,
-                [2] = "All"
-            }
-            
-            local success, err = pcall(function()
-                game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
-            end)
-            
-            if not success then
-                warn("Chat spam error:", err)
+        local message = SpamMessageInput.Text
+        local interval = tonumber(SpamIntervalInput.Text) or spamInterval
+        
+        local function SendMessage(msg)
+            if TextChatService then
+                -- New chat system
+                local channel = TextChatService.TextChannels.RBXGeneral
+                if channel then
+                    channel:SendAsync(msg)
+                end
+            else
+                -- Old chat system
+                local args = {
+                    [1] = msg,
+                    [2] = "All"
+                }
+                
+                local success, err = pcall(function()
+                    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(unpack(args))
+                end)
+                
+                if not success then
+                    warn("Chat spam error:", err)
+                end
             end
         end
         
         spamConnection = RunService.Heartbeat:Connect(function()
             if not chatSpamEnabled then return end
-            SendMessage(spamMessages[math.random(1, #spamMessages)])
-            wait(spamInterval)
+            SendMessage(message)
+            wait(interval)
         end)
     else
         ChatSpamToggle.BackgroundColor3 = toggleOffColor
@@ -1098,4 +1033,4 @@ originalColor = Lighting.OutdoorAmbient
 originalFogEnd = Lighting.FogEnd
 
 -- Уведомление о загрузке
-print("Ultimate Menu v2.0 Enhanced loaded successfully!")
+print("Ultimate Menu v2.1 Enhanced loaded successfully!")
