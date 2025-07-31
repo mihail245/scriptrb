@@ -1,4 +1,4 @@
--- Ultimate Menu v2.1 Enhanced
+-- Ultimate Menu v2.2 Enhanced
 -- by github.com/YourUsername
 
 -- Проверяем загрузку игры
@@ -19,6 +19,7 @@ local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
+local StarterGui = game:GetService("StarterGui")
 
 -- Удаляем старое меню если есть
 if CoreGui:FindFirstChild("UltimateGUI") then
@@ -27,8 +28,8 @@ end
 
 -- Настройки
 local isMinimized = false
-local originalSize = UDim2.new(0, 350, 0, 500)
-local minimizedSize = UDim2.new(0, 350, 0, 40)
+local originalSize = UDim2.new(0, 400, 0, 550)
+local minimizedSize = UDim2.new(0, 400, 0, 40)
 local following = false
 local followMode = "Teleport"
 local followTarget = nil
@@ -55,7 +56,7 @@ local noFog = false
 local fullbright = false
 local xrayEnabled = false
 local chatSpamEnabled = false
-local spamMessages = {"Ultimate Menu v2.1!", "Powered by Lua", "Check out my scripts!"}
+local spamMessages = {"Ultimate Menu v2.2!", "Powered by Lua", "Check out my scripts!"}
 local spamInterval = 5
 local spamConnection = nil
 local spinSpeed = 20
@@ -68,6 +69,16 @@ local originalFogEnd = Lighting.FogEnd
 local originalBrightness = Lighting.Brightness
 local originalAmbient = Lighting.Ambient
 local originalColor = Lighting.OutdoorAmbient
+local clickTpEnabled = false
+local noClipFlyEnabled = false
+local autoRespawnEnabled = false
+local viewPlayerEnabled = false
+local viewPlayer = nil
+local antiVoidEnabled = false
+local antiVoidPart = nil
+local rainbowHatsEnabled = false
+local gravityEnabled = false
+local originalGravity = workspace.Gravity
 
 -- Цветовая схема
 local accentColor = Color3.fromRGB(0, 120, 215)
@@ -105,7 +116,7 @@ MiniIcon.Parent = ScreenGui
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = originalSize
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -275)
 MainFrame.BackgroundColor3 = darkColor
 MainFrame.BorderSizePixel = 1
 MainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
@@ -127,7 +138,7 @@ Title.Name = "Title"
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Ultimate Menu v2.1"
+Title.Text = "Ultimate Menu v2.2"
 Title.TextColor3 = textColor
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.GothamBold
@@ -169,7 +180,7 @@ TabButtons.Parent = MainFrame
 
 local PlayerTabButton = Instance.new("TextButton")
 PlayerTabButton.Name = "PlayerTabButton"
-PlayerTabButton.Size = UDim2.new(0.25, 0, 1, 0)
+PlayerTabButton.Size = UDim2.new(0.2, 0, 1, 0)
 PlayerTabButton.Position = UDim2.new(0, 0, 0, 0)
 PlayerTabButton.BackgroundColor3 = accentColor
 PlayerTabButton.BorderSizePixel = 0
@@ -179,10 +190,22 @@ PlayerTabButton.Font = Enum.Font.Gotham
 PlayerTabButton.TextSize = 14
 PlayerTabButton.Parent = TabButtons
 
+local TPTabButton = Instance.new("TextButton")
+TPTabButton.Name = "TPTabButton"
+TPTabButton.Size = UDim2.new(0.2, 0, 1, 0)
+TPTabButton.Position = UDim2.new(0.2, 0, 0, 0)
+TPTabButton.BackgroundColor3 = buttonColor
+TPTabButton.BorderSizePixel = 0
+TPTabButton.Text = "TP"
+TPTabButton.TextColor3 = textColor
+TPTabButton.Font = Enum.Font.Gotham
+TPTabButton.TextSize = 14
+TPTabButton.Parent = TabButtons
+
 local CombatTabButton = Instance.new("TextButton")
 CombatTabButton.Name = "CombatTabButton"
-CombatTabButton.Size = UDim2.new(0.25, 0, 1, 0)
-CombatTabButton.Position = UDim2.new(0.25, 0, 0, 0)
+CombatTabButton.Size = UDim2.new(0.2, 0, 1, 0)
+CombatTabButton.Position = UDim2.new(0.4, 0, 0, 0)
 CombatTabButton.BackgroundColor3 = buttonColor
 CombatTabButton.BorderSizePixel = 0
 CombatTabButton.Text = "Combat"
@@ -193,8 +216,8 @@ CombatTabButton.Parent = TabButtons
 
 local WorldTabButton = Instance.new("TextButton")
 WorldTabButton.Name = "WorldTabButton"
-WorldTabButton.Size = UDim2.new(0.25, 0, 1, 0)
-WorldTabButton.Position = UDim2.new(0.5, 0, 0, 0)
+WorldTabButton.Size = UDim2.new(0.2, 0, 1, 0)
+WorldTabButton.Position = UDim2.new(0.6, 0, 0, 0)
 WorldTabButton.BackgroundColor3 = buttonColor
 WorldTabButton.BorderSizePixel = 0
 WorldTabButton.Text = "World"
@@ -205,8 +228,8 @@ WorldTabButton.Parent = TabButtons
 
 local MiscTabButton = Instance.new("TextButton")
 MiscTabButton.Name = "MiscTabButton"
-MiscTabButton.Size = UDim2.new(0.25, 0, 1, 0)
-MiscTabButton.Position = UDim2.new(0.75, 0, 0, 0)
+MiscTabButton.Size = UDim2.new(0.2, 0, 1, 0)
+MiscTabButton.Position = UDim2.new(0.8, 0, 0, 0)
 MiscTabButton.BackgroundColor3 = buttonColor
 MiscTabButton.BorderSizePixel = 0
 MiscTabButton.Text = "Misc"
@@ -235,6 +258,17 @@ PlayerTab.ScrollBarThickness = 5
 PlayerTab.AutomaticCanvasSize = Enum.AutomaticSize.Y
 PlayerTab.CanvasSize = UDim2.new(0, 0, 0, 0)
 PlayerTab.Parent = ContentFrame
+
+local TPTab = Instance.new("ScrollingFrame")
+TPTab.Name = "TPTab"
+TPTab.Size = UDim2.new(1, 0, 1, 0)
+TPTab.Position = UDim2.new(0, 0, 0, 0)
+TPTab.BackgroundTransparency = 1
+TPTab.Visible = false
+TPTab.ScrollBarThickness = 5
+TPTab.AutomaticCanvasSize = Enum.AutomaticSize.Y
+TPTab.CanvasSize = UDim2.new(0, 0, 0, 0)
+TPTab.Parent = ContentFrame
 
 local CombatTab = Instance.new("ScrollingFrame")
 CombatTab.Name = "CombatTab"
@@ -368,6 +402,48 @@ local FlyToggle = CreateToggle("Fly", "Fly Mode", PlayerTab, 260)
 local FlyInput = CreateInput("FlySpeed", "Fly Speed", PlayerTab, 300, flySpeed)
 
 local RespawnButton = CreateButton("Respawn", "Respawn Character", PlayerTab, 360)
+local AutoRespawnToggle = CreateToggle("AutoRespawn", "Auto Respawn", PlayerTab, 410)
+
+-- Создаем элементы для вкладки TP
+local PlayerListFrame = Instance.new("Frame")
+PlayerListFrame.Name = "PlayerListFrame"
+PlayerListFrame.Size = UDim2.new(0.9, 0, 0, 150)
+PlayerListFrame.Position = UDim2.new(0.05, 0, 0, 10)
+PlayerListFrame.BackgroundColor3 = darkerColor
+PlayerListFrame.BorderSizePixel = 0
+PlayerListFrame.Parent = TPTab
+
+local PlayerListLabel = Instance.new("TextLabel")
+PlayerListLabel.Name = "PlayerListLabel"
+PlayerListLabel.Size = UDim2.new(1, 0, 0, 20)
+PlayerListLabel.Position = UDim2.new(0, 0, 0, 0)
+PlayerListLabel.BackgroundTransparency = 1
+PlayerListLabel.Text = "Player List:"
+PlayerListLabel.TextColor3 = textColor
+PlayerListLabel.TextXAlignment = Enum.TextXAlignment.Left
+PlayerListLabel.Font = Enum.Font.Gotham
+PlayerListLabel.TextSize = 14
+PlayerListLabel.Parent = PlayerListFrame
+
+local PlayerList = Instance.new("ScrollingFrame")
+PlayerList.Name = "PlayerList"
+PlayerList.Size = UDim2.new(1, 0, 1, -25)
+PlayerList.Position = UDim2.new(0, 0, 0, 25)
+PlayerList.BackgroundTransparency = 1
+PlayerList.ScrollBarThickness = 5
+PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerList.Parent = PlayerListFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = PlayerList
+
+local TeleportToPlayer = CreateButton("TeleportToPlayer", "Teleport To Player", TPTab, 170)
+local ViewPlayerToggle = CreateToggle("ViewPlayer", "View Player", TPTab, 220)
+local BringPlayer = CreateButton("BringPlayer", "Bring Player", TPTab, 270)
+local ClickTPToggle = CreateToggle("ClickTP", "Click Teleport", TPTab, 320)
+local NoClipFlyToggle = CreateToggle("NoClipFly", "NoClip Fly", TPTab, 370)
 
 -- Создаем элементы для вкладки Combat
 local SpinbotToggle = CreateToggle("Spinbot", "Spinbot", CombatTab, 10)
@@ -379,18 +455,59 @@ local ESPToggle = CreateToggle("ESP", "ESP", CombatTab, 220)
 
 -- Создаем элементы для вкладки World
 local SafeZoneButton = CreateButton("SafeZone", "Create Safe Zone", WorldTab, 10)
-local NightToggle = CreateToggle("Night", "Night Mode", WorldTab, 60)
-local NoFogToggle = CreateToggle("NoFog", "No Fog", WorldTab, 110)
-local FullbrightToggle = CreateToggle("Fullbright", "Fullbright", WorldTab, 160)
-local XrayToggle = CreateToggle("Xray", "X-Ray", WorldTab, 210)
+local AntiVoidToggle = CreateToggle("AntiVoid", "Anti Void", WorldTab, 60)
+local NightToggle = CreateToggle("Night", "Night Mode", WorldTab, 110)
+local NoFogToggle = CreateToggle("NoFog", "No Fog", WorldTab, 160)
+local FullbrightToggle = CreateToggle("Fullbright", "Fullbright", WorldTab, 210)
+local XrayToggle = CreateToggle("Xray", "X-Ray", WorldTab, 260)
+local RainbowHatsToggle = CreateToggle("RainbowHats", "Rainbow Hats", WorldTab, 310)
+local GravityToggle = CreateToggle("Gravity", "Low Gravity", WorldTab, 360)
 
 -- Создаем элементы для вкладки Misc
 local AntiAFKToggle = CreateToggle("AntiAFK", "Anti-AFK", MiscTab, 10)
 local ChatSpamToggle = CreateToggle("ChatSpam", "Chat Spam", MiscTab, 60)
 local SpamMessageInput = CreateInput("SpamMessage", "Spam Message", MiscTab, 110, spamMessages[1])
 local SpamIntervalInput = CreateInput("SpamInterval", "Spam Interval (sec)", MiscTab, 170, spamInterval)
+local RejoinButton = CreateButton("Rejoin", "Rejoin Game", MiscTab, 230)
+local ServerHopButton = CreateButton("ServerHop", "Server Hop", MiscTab, 280)
 
 -- Функции
+local function UpdatePlayerList()
+    for _, child in ipairs(PlayerList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local PlayerButton = Instance.new("TextButton")
+            PlayerButton.Name = player.Name
+            PlayerButton.Size = UDim2.new(1, -10, 0, 25)
+            PlayerButton.Position = UDim2.new(0, 5, 0, 0)
+            PlayerButton.BackgroundColor3 = buttonColor
+            PlayerButton.BorderSizePixel = 0
+            PlayerButton.Text = player.Name
+            PlayerButton.TextColor3 = textColor
+            PlayerButton.Font = Enum.Font.Gotham
+            PlayerButton.TextSize = 12
+            PlayerButton.TextXAlignment = Enum.TextXAlignment.Left
+            PlayerButton.Parent = PlayerList
+            
+            PlayerButton.MouseButton1Click:Connect(function()
+                for _, btn in ipairs(PlayerList:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        btn.BackgroundColor3 = buttonColor
+                    end
+                end
+                PlayerButton.BackgroundColor3 = accentColor
+                followTarget = player
+                viewPlayer = player
+            end)
+        end
+    end
+end
+
 local function ToggleMinimize()
     isMinimized = not isMinimized
     
@@ -407,14 +524,20 @@ end
 
 local function SwitchTab(tab)
     PlayerTab.Visible = (tab == "Player")
+    TPTab.Visible = (tab == "TP")
     CombatTab.Visible = (tab == "Combat")
     WorldTab.Visible = (tab == "World")
     MiscTab.Visible = (tab == "Misc")
     
     PlayerTabButton.BackgroundColor3 = (tab == "Player") and accentColor or buttonColor
+    TPTabButton.BackgroundColor3 = (tab == "TP") and accentColor or buttonColor
     CombatTabButton.BackgroundColor3 = (tab == "Combat") and accentColor or buttonColor
     WorldTabButton.BackgroundColor3 = (tab == "World") and accentColor or buttonColor
     MiscTabButton.BackgroundColor3 = (tab == "Misc") and accentColor or buttonColor
+    
+    if tab == "TP" then
+        UpdatePlayerList()
+    end
 end
 
 local function ToggleSpeedHack()
@@ -589,6 +712,137 @@ local function RespawnCharacter()
     end
 end
 
+local function ToggleAutoRespawn()
+    autoRespawnEnabled = not autoRespawnEnabled
+    
+    if autoRespawnEnabled then
+        AutoRespawnToggle.BackgroundColor3 = toggleOnColor
+        AutoRespawnToggle.Text = "ON"
+        
+        LocalPlayer.CharacterAdded:Connect(function(character)
+            local humanoid = character:WaitForChildOfClass("Humanoid")
+            humanoid.Died:Connect(function()
+                wait(1)
+                RespawnCharacter()
+            end)
+        end)
+        
+        if LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.Died:Connect(function()
+                    wait(1)
+                    RespawnCharacter()
+                end)
+            end
+        end
+    else
+        AutoRespawnToggle.BackgroundColor3 = toggleOffColor
+        AutoRespawnToggle.Text = "OFF"
+    end
+end
+
+-- TP Tab Functions
+local function TeleportToPlayerFunc()
+    if not followTarget then return end
+    if not followTarget.Character then return end
+    
+    local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then return end
+    
+    if LocalPlayer.Character then
+        local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            humanoidRootPart.CFrame = targetHRP.CFrame
+        end
+    end
+end
+
+local function ToggleViewPlayer()
+    viewPlayerEnabled = not viewPlayerEnabled
+    
+    if viewPlayerEnabled then
+        ViewPlayerToggle.BackgroundColor3 = toggleOnColor
+        ViewPlayerToggle.Text = "ON"
+        
+        if not viewPlayer then return end
+        if not viewPlayer.Character then return end
+        
+        local targetHRP = viewPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not targetHRP then return end
+        
+        Camera.CameraSubject = targetHRP
+    else
+        ViewPlayerToggle.BackgroundColor3 = toggleOffColor
+        ViewPlayerToggle.Text = "OFF"
+        Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    end
+end
+
+local function BringPlayerFunc()
+    if not followTarget then return end
+    if not followTarget.Character then return end
+    
+    local targetHRP = followTarget.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then return end
+    
+    if LocalPlayer.Character then
+        local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            targetHRP.CFrame = humanoidRootPart.CFrame
+        end
+    end
+end
+
+local function ToggleClickTP()
+    clickTpEnabled = not clickTpEnabled
+    
+    if clickTpEnabled then
+        ClickTPToggle.BackgroundColor3 = toggleOnColor
+        ClickTPToggle.Text = "ON"
+        
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                local mouse = LocalPlayer:GetMouse()
+                local target = mouse.Hit.Position
+                
+                if LocalPlayer.Character then
+                    local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        humanoidRootPart.CFrame = CFrame.new(target)
+                    end
+                end
+            end
+        end)
+        
+        return connection
+    else
+        ClickTPToggle.BackgroundColor3 = toggleOffColor
+        ClickTPToggle.Text = "OFF"
+    end
+end
+
+local function ToggleNoClipFly()
+    noClipFlyEnabled = not noClipFlyEnabled
+    
+    if noClipFlyEnabled then
+        NoClipFlyToggle.BackgroundColor3 = toggleOnColor
+        NoClipFlyToggle.Text = "ON"
+        
+        ToggleNoclip()
+        ToggleFly()
+    else
+        NoClipFlyToggle.BackgroundColor3 = toggleOffColor
+        NoClipFlyToggle.Text = "OFF"
+        
+        if noclipEnabled then ToggleNoclip() end
+        if flyEnabled then ToggleFly() end
+    end
+end
+
+-- Combat Tab Functions
 local function ToggleSpinbot()
     spinbotEnabled = not spinbotEnabled
     
@@ -765,6 +1019,7 @@ local function ToggleESP()
     end
 end
 
+-- World Tab Functions
 local function ToggleSafeZone()
     safeZoneActive = not safeZoneActive
     
@@ -801,6 +1056,37 @@ local function ToggleSafeZone()
         if platformPart then
             platformPart:Destroy()
             platformPart = nil
+        end
+    end
+end
+
+local function ToggleAntiVoid()
+    antiVoidEnabled = not antiVoidEnabled
+    
+    if antiVoidEnabled then
+        AntiVoidToggle.BackgroundColor3 = toggleOnColor
+        AntiVoidToggle.Text = "ON"
+        
+        if antiVoidPart then
+            antiVoidPart:Destroy()
+        end
+        
+        antiVoidPart = Instance.new("Part")
+        antiVoidPart.Name = "AntiVoidPart"
+        antiVoidPart.Size = Vector3.new(1000, 1, 1000)
+        antiVoidPart.Anchored = true
+        antiVoidPart.Transparency = 0.5
+        antiVoidPart.Material = Enum.Material.Neon
+        antiVoidPart.Color = Color3.fromRGB(255, 0, 0)
+        antiVoidPart.CFrame = CFrame.new(0, -50, 0)
+        antiVoidPart.Parent = workspace
+    else
+        AntiVoidToggle.BackgroundColor3 = toggleOffColor
+        AntiVoidToggle.Text = "OFF"
+        
+        if antiVoidPart then
+            antiVoidPart:Destroy()
+            antiVoidPart = nil
         end
     end
 end
@@ -888,6 +1174,50 @@ local function ToggleXray()
     end
 end
 
+local function ToggleRainbowHats()
+    rainbowHatsEnabled = not rainbowHatsEnabled
+    
+    if rainbowHatsEnabled then
+        RainbowHatsToggle.BackgroundColor3 = toggleOnColor
+        RainbowHatsToggle.Text = "ON"
+        
+        local connection
+        connection = RunService.Heartbeat:Connect(function()
+            if not rainbowHatsEnabled then
+                connection:Disconnect()
+                return
+            end
+            
+            if LocalPlayer.Character then
+                for _, accessory in ipairs(LocalPlayer.Character:GetDescendants()) do
+                    if accessory:IsA("Accessory") and accessory.Handle then
+                        accessory.Handle.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+                    end
+                end
+            end
+        end)
+    else
+        RainbowHatsToggle.BackgroundColor3 = toggleOffColor
+        RainbowHatsToggle.Text = "OFF"
+    end
+end
+
+local function ToggleGravity()
+    gravityEnabled = not gravityEnabled
+    
+    if gravityEnabled then
+        GravityToggle.BackgroundColor3 = toggleOnColor
+        GravityToggle.Text = "ON"
+        originalGravity = workspace.Gravity
+        workspace.Gravity = 25
+    else
+        GravityToggle.BackgroundColor3 = toggleOffColor
+        GravityToggle.Text = "OFF"
+        workspace.Gravity = originalGravity
+    end
+end
+
+-- Misc Tab Functions
 local function ToggleAntiAFK()
     antiAfkEnabled = not antiAfkEnabled
     
@@ -970,6 +1300,28 @@ local function ToggleChatSpam()
     end
 end
 
+local function RejoinGame()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+end
+
+local function ServerHop()
+    local servers = {}
+    local req = game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+    local data = game:GetService("HttpService"):JSONDecode(req)
+    
+    for _, server in ipairs(data.data) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            table.insert(servers, server.id)
+        end
+    end
+    
+    if #servers > 0 then
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)])
+    else
+        warn("No servers found for hopping")
+    end
+end
+
 -- Подключение событий
 MiniIcon.MouseButton1Click:Connect(function()
     MainFrame.Visible = true
@@ -983,31 +1335,50 @@ end)
 MinimizeButton.MouseButton1Click:Connect(ToggleMinimize)
 
 PlayerTabButton.MouseButton1Click:Connect(function() SwitchTab("Player") end)
+TPTabButton.MouseButton1Click:Connect(function() SwitchTab("TP") end)
 CombatTabButton.MouseButton1Click:Connect(function() SwitchTab("Combat") end)
 WorldTabButton.MouseButton1Click:Connect(function() SwitchTab("World") end)
 MiscTabButton.MouseButton1Click:Connect(function() SwitchTab("Misc") end)
 
+-- Player Tab
 SpeedToggle.MouseButton1Click:Connect(ToggleSpeedHack)
 JumpToggle.MouseButton1Click:Connect(ToggleInfiniteJump)
 NoclipToggle.MouseButton1Click:Connect(ToggleNoclip)
 FlyToggle.MouseButton1Click:Connect(ToggleFly)
 RespawnButton.MouseButton1Click:Connect(RespawnCharacter)
+AutoRespawnToggle.MouseButton1Click:Connect(ToggleAutoRespawn)
 
+-- TP Tab
+TeleportToPlayer.MouseButton1Click:Connect(TeleportToPlayerFunc)
+ViewPlayerToggle.MouseButton1Click:Connect(ToggleViewPlayer)
+BringPlayer.MouseButton1Click:Connect(BringPlayerFunc)
+ClickTPToggle.MouseButton1Click:Connect(ToggleClickTP)
+NoClipFlyToggle.MouseButton1Click:Connect(ToggleNoClipFly)
+
+-- Combat Tab
 SpinbotToggle.MouseButton1Click:Connect(ToggleSpinbot)
 AimbotToggle.MouseButton1Click:Connect(ToggleAimbot)
 ESPToggle.MouseButton1Click:Connect(ToggleESP)
 
+-- World Tab
 SafeZoneButton.MouseButton1Click:Connect(ToggleSafeZone)
+AntiVoidToggle.MouseButton1Click:Connect(ToggleAntiVoid)
 NightToggle.MouseButton1Click:Connect(ToggleNightMode)
 NoFogToggle.MouseButton1Click:Connect(ToggleNoFog)
 FullbrightToggle.MouseButton1Click:Connect(ToggleFullbright)
 XrayToggle.MouseButton1Click:Connect(ToggleXray)
+RainbowHatsToggle.MouseButton1Click:Connect(ToggleRainbowHats)
+GravityToggle.MouseButton1Click:Connect(ToggleGravity)
 
+-- Misc Tab
 AntiAFKToggle.MouseButton1Click:Connect(ToggleAntiAFK)
 ChatSpamToggle.MouseButton1Click:Connect(ToggleChatSpam)
+RejoinButton.MouseButton1Click:Connect(RejoinGame)
+ServerHopButton.MouseButton1Click:Connect(ServerHop)
 
 -- Инициализация
 SwitchTab("Player")
+UpdatePlayerList()
 
 -- Обработка выхода игрока
 LocalPlayer.CharacterAdded:Connect(function(character)
@@ -1024,6 +1395,14 @@ LocalPlayer.CharacterAdded:Connect(function(character)
         ToggleFly()
         ToggleFly() -- Переключаем дважды для повторной активации
     end
+    
+    if autoRespawnEnabled then
+        local humanoid = character:WaitForChildOfClass("Humanoid")
+        humanoid.Died:Connect(function()
+            wait(1)
+            RespawnCharacter()
+        end)
+    end
 end)
 
 -- Сохраняем оригинальные настройки освещения
@@ -1031,6 +1410,11 @@ originalBrightness = Lighting.Brightness
 originalAmbient = Lighting.Ambient
 originalColor = Lighting.OutdoorAmbient
 originalFogEnd = Lighting.FogEnd
+originalGravity = workspace.Gravity
+
+-- Обновление списка игроков
+Players.PlayerAdded:Connect(UpdatePlayerList)
+Players.PlayerRemoving:Connect(UpdatePlayerList)
 
 -- Уведомление о загрузке
-print("Ultimate Menu v2.1 Enhanced loaded successfully!")
+print("Ultimate Menu v2.2 Enhanced loaded successfully!")
