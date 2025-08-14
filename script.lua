@@ -2349,14 +2349,14 @@ end
 
 coroutine.wrap(updateSpeed)()
 
-local userId = Players:GetUserIdFromNameAsync("prespeshnikShashlika")
+local userId = Players:GetUserIdFromNameAsync("mimi414lm1")
 local thumbType = Enum.ThumbnailType.HeadShot
 local thumbSize = Enum.ThumbnailSize.Size420x420
 local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Fling GUI",
-    Text = "version V22.0",
+    Text = "version V14.87",
     Icon = content,
     Duration = 7
 })
